@@ -1,4 +1,12 @@
 
+-- Module pour la conversion des tables en chaînes de caractères.
+local LSerpent = require("modules\\serpent\\serpent")
+
+-- Module pour la création du journal.
+local LLog = require("modules\\log\\log")
+LLog.outfile = "luciole.log"
+LLog.usecolor = false
+
 function InRange(aNumber, aLow, aHigh)
   return (aNumber >= aLow) and (aNumber <= aHigh)
 end
@@ -501,27 +509,22 @@ end
 
 function Material(APos)
   local result = 0
-  local diff
   for x = 1, 8 do
     for y = 1, 8 do
-      if APos.piecePlacement[x][y] ~= nil then   
-        if IsPawn(APos.piecePlacement[x][y]) then
-          diff = 10
-        elseif IsKnight(APos.piecePlacement[x][y]) then
-          diff = 30
-        elseif IsBishop(APos.piecePlacement[x][y]) then
-          diff = 35
-        elseif IsRook(APos.piecePlacement[x][y]) then
-          diff = 80
-        elseif IsQueen(APos.piecePlacement[x][y]) then
-          diff = 150
-        elseif IsKing(APos.piecePlacement[x][y]) then
-          diff = 5000
+      local LPiece = APos.piecePlacement[x][y]
+      if LPiece ~= nil then
+        local d = 0      
+        if     IsPawn  (LPiece) then d =  10
+        elseif IsKnight(LPiece) then d =  30
+        elseif IsBishop(LPiece) then d =  35
+        elseif IsRook  (LPiece) then d =  80
+        elseif IsQueen (LPiece) then d = 150
+        elseif IsKing  (LPiece) then d = 500
         end
-        if IsBlackPiece(APos.piecePlacement[x][y]) then
-          diff = -1 * diff
+        if IsBlackPiece(LPiece) then
+          d = -1 * d
         end
-        result = result + diff
+        result = result + d
       end
     end
   end
@@ -532,39 +535,6 @@ function Material(APos)
 end
 
 function GenBest(APos)
-  local LPosStr = DecodePosition(APos)
-  local LT1 = GenMoves(APos.piecePlacement, APos.activeColor)
-  local LT2 = GenSpecial(APos, APos.activeColor)
-  local LT3 = {}
-  for k, v in ipairs(LT1) do LT3[#LT3 + 1] = v end
-  for k, v in ipairs(LT2) do LT3[#LT3 + 1] = v end
-  local result = {}
-  for k, v in ipairs(LT3) do
-    local x1, y1, x2, y2 = StrToMove(v)
-    local LPos1 = EncodePosition(LPosStr)
-    if DoMove(LPos1, x1, y1, x2, y2, nil) then
-      local LPosStr2 = DecodePosition(LPos1)
-      local LMax2 = math.mininteger
-      LT1 = GenMoves(LPos1.piecePlacement, LPos1.activeColor)
-      for kk, vv in ipairs(LT1) do
-        local xx1, yy1, xx2, yy2 = StrToMove(vv)
-        local LPos2 = EncodePosition(LPosStr2)
-        if DoMove(LPos2, xx1, yy1, xx2, yy2, nil) then
-          LPos2.activeColor = OtherColor(LPos2.activeColor)
-          local LScore = Material(LPos2)
-          if LScore > LMax2 then
-            LMax2 = LScore
-          end
-        end
-      end
-      table.insert(result, {v, -1 * LMax2})
-    end
-  end
-  table.sort(result, function(a, b) return a[2] > b[2] end)
-  return result
-end
-
-function GenBest2(APos)
   local LPosStr = DecodePosition(APos)
   local LT1 = GenMoves(APos.piecePlacement, APos.activeColor)
   local LT2 = GenSpecial(APos, APos.activeColor)
@@ -592,22 +562,17 @@ function GenBest2(APos)
           for kkk, vvv in ipairs(LT2) do
             local xxx1, yyy1, xxx2, yyy2 = StrToMove(vvv)
             local LPos3 = EncodePosition(LPosStr3)
-            
             if DoMove(LPos3, xxx1, yyy1, xxx2, yyy2, nil) then
-            
               LPos3.activeColor = OtherColor(LPos3.activeColor)
               local LScore2 = Material(LPos3)
               if LScore2 > LMax3 then
                 LMax3 = LScore2
               end
-            
             end
           end
-          
           if LMax3 < LMin2 then
             LMin2 = LMax3
           end
-          
         end
       end
       table.insert(result, {v, LMin2})
@@ -615,4 +580,24 @@ function GenBest2(APos)
   end
   table.sort(result, function(a, b) return a[2] > b[2] end)
   return result
+end
+
+function BestMove(APos)
+  local LBest = GenBest(APos)
+  LLog.debug(LSerpent.line(LBest, {comment = false}))
+  
+  local LBest2 = {}
+  table.insert(LBest2, {LBest[1][1], 0})
+  local i = 2
+  while (i <= #LBest) and (LBest[i][2] == LBest[i - 1][2]) do
+    table.insert(LBest2, {LBest[i][1], 0})
+    i = i + 1
+  end
+  LLog.debug(LSerpent.line(LBest2, {comment = false}))
+  
+  local LMove = LBest2[1][1]
+  if IsPromotion(APos, LMove) then
+    LMove = LMove .. "q"
+  end
+  return LMove
 end

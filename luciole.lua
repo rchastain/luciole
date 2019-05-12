@@ -1,89 +1,71 @@
 
 -- Luciole
--- UCI chess engine by R. Chastain
+-- Joueur d'échecs artificiel écrit en Lua.
 
--- Module for chess playing
+-- Module pour la recherche du meilleur coup.
 require('chess')
-local LCurrPos = EncodePosition()
+local LPos = EncodePosition()
 
--- Module for table pretty printing
-local LSerpent = require("modules\\serpent\\serpent")
-
--- Module for logging
-local LLog = require("modules\\log\\log")
-LLog.outfile = "luciole.log"
-LLog.usecolor = false
-
-function OnUciNewGame()
-  LCurrPos = EncodePosition()
+function OnNewGame()
+  LPos = EncodePosition()
 end
 
-function OnPositionStartPos()
-  LCurrPos = EncodePosition()
+function OnStartPos()
+  LPos = EncodePosition()
 end
 
-function OnPositionFen(AFEN)
-  LCurrPos = EncodePosition(AFEN)
+function OnFen(AFen)
+  LPos = EncodePosition(AFen)
 end
 
-function OnPositionMove(AMove)
-  DoMove(LCurrPos, StrToMove(AMove))
+function OnMove(AMove)
+  DoMove(LPos, StrToMove(AMove))
 end
 
 function OnGo(AWTime, ABTime, AMovesToGo)
-  local LBest = GenBest2(LCurrPos)
-  LLog.debug(LSerpent.line(LBest, {comment = false}))
-  local LMove = LBest[1][1]
-  if IsPromotion(LCurrPos, LMove) then
-    LMove = LMove .. "q"
-  end
+  local LMove = BestMove(LPos)
   io.write(string.format("bestmove %s\n", LMove))
   io.flush()
 end
 
+-- Boucle principale (interface UCI)
+
 while true do
   local LInput = io.read()
-  LLog.debug(LInput)
-  -- uci
+  
   if LInput == "uci" then
     io.write(string.format("id name %s\nid author %s\nuciok\n", "Luciole 0.0.1", "R. Chastain"))
     io.flush()
   end
-  -- isready
   if LInput == "isready" then
     io.write(string.format("readyok\n"))
     io.flush()
   end
-  -- ucinewgame
   if LInput == "ucinewgame" then
-    OnUciNewGame()
+    OnNewGame()
   end
-  -- quit
   if LInput == "quit" then
     break
   end
-  -- show
   if LInput == "show" then
-    io.write(BoardToText(LCurrPos.piecePlacement) .. '\n')
+    io.write(BoardToText(LPos.piecePlacement) .. '\n')
     io.flush()
   end
-  -- position
   if string.sub(LInput, 1, 8) == "position" then
     if string.sub(LInput, 10, 17) == "startpos" then
-      OnPositionStartPos()
+      OnStartPos()
     elseif string.sub(LInput, 10, 12) == "fen" then
       local LFEN = string.match(LInput, "%w+/%w+/%w+/%w+/%w+/%w+/%w+/%w+ [wb] [%w-]+ [%w-]+ %d+ %d+")
       if LFEN ~= nil then
-        OnPositionFen(LFEN)
+        OnFen(LFEN)
       end
     end
     if string.find(LInput, "moves") then
       for LMove in string.gmatch(LInput, "[%w][%d][%w][%d][%w]?") do
-        OnPositionMove(LMove)
+        OnMove(LMove)
       end
     end
   end
-  -- go
   if string.sub(LInput, 1, 2) == "go" then
     local LWTime, LBTime, LMovesToGo = string.match(LInput, "go wtime (%d+) btime (%d+) movestogo (%d+)")
     if LWTime == nil then
