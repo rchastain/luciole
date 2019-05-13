@@ -1,9 +1,11 @@
 
 -- Luciole
--- Joueur d'échecs artificiel écrit en Lua.
+-- Joueur d'échecs artificiel
 
--- Module pour la recherche du meilleur coup.
-require('chess')
+-- Interface UCI pour le joueur d'échecs artificiel
+
+require('chess') -- Module pour la recherche du meilleur coup
+
 local LPos = EncodePosition()
 
 function OnNewGame()
@@ -23,15 +25,19 @@ function OnMove(AMove)
 end
 
 function OnGo(AWTime, ABTime, AMovesToGo)
+  local t = os.clock()
   local LMove = BestMove(LPos)
+  local t = os.clock() - t
+  LLog.debug(string.format("Temps écoulé : %.2f s\n", t))
   io.write(string.format("bestmove %s\n", LMove))
   io.flush()
 end
 
--- Boucle principale (interface UCI)
+-- Boucle principale
 
 while true do
   local LInput = io.read()
+  LLog.debug(">> ".. LInput.. "\n")
   
   if LInput == "uci" then
     io.write(string.format("id name %s\nid author %s\nuciok\n", "Luciole 0.0.1", "R. Chastain"))

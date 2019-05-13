@@ -1,9 +1,11 @@
 
--- Module pour la conversion des tables en chaînes de caractères.
-local LSerpent = require("modules\\serpent\\serpent")
+-- Luciole
+-- Joueur d'échecs artificiel
 
--- Module pour la création du journal.
-local LLog = require("modules\\log\\log")
+-- Cerveau du joueur d'échecs artificiel
+
+local LSerpent = require("modules\\serpent\\serpent") -- Module pour la conversion des tables en chaînes de caractères
+LLog = require("modules\\log\\log") -- Module pour la production du journal
 LLog.outfile = "luciole.log"
 LLog.usecolor = false
 
@@ -196,7 +198,7 @@ function DecodePosition(APos)
   )
 end
 
-local vectors = {
+local LVectors = {
   {x =-1, y = 1},
   {x = 1, y = 1},
   {x =-1, y =-1},
@@ -216,10 +218,10 @@ local vectors = {
 }
 
 function ComputeTargetSquare(aX1, aY1, aVectorIndex)
-  assert(InRange(aVectorIndex, 1, #vectors))
+  assert(InRange(aVectorIndex, 1, #LVectors))
   local x2, y2 =
-    aX1 + vectors[aVectorIndex].x,
-    aY1 + vectors[aVectorIndex].y
+    aX1 + LVectors[aVectorIndex].x,
+    aY1 + LVectors[aVectorIndex].y
   if InRange(x2, 1, 8) and InRange(y2, 1, 8) then
     return true, x2, y2
   else
