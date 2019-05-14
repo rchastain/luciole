@@ -4,8 +4,8 @@
 
 -- Cerveau du joueur d'échecs artificiel
 
-local LSerpent = require("modules\\serpent\\serpent") -- Module pour la conversion des tables en chaînes de caractères
-LLog = require("modules\\log\\log") -- Module pour la production du journal
+local LSerpent = require("modules/serpent/serpent") -- Module pour la conversion des tables en chaînes de caractères
+LLog = require("modules/log/log") -- Module pour la production du journal
 LLog.outfile = "luciole.log"
 LLog.usecolor = false
 
