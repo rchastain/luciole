@@ -1,5 +1,5 @@
 # luciole
-UCI chess engine written in Lua.
+UCI chess engine written in Lua. Plays traditional chess and Fischer random chess.
 
 *Luciole* is just a Lua script. To run *Luciole* you need a Lua interpreter.
 
