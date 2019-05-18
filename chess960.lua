@@ -3,6 +3,8 @@
 -- Joueur d'échecs artificiel
 -- Cerveau du joueur d'échecs artificiel
 
+require("xfen")
+
 local LSerpent = require("modules/serpent/serpent") -- Module pour la conversion des tables en chaînes de caractères
 LLog = require("modules/log/log") -- Module pour la production du journal
 LLog.outfile = "luciole.log"
@@ -10,6 +12,10 @@ LLog.usecolor = false
 
 function InRange(aNumber, aLow, aHigh)
   return (aNumber >= aLow) and (aNumber <= aHigh)
+end
+
+function IsBetween(aNumber, aLow, aHigh)
+  return (aNumber > aLow) and (aNumber < aHigh) or (aNumber > aHigh) and (aNumber < aLow)
 end
 
 function StrToSquare(aStr)
@@ -54,6 +60,18 @@ function MoveToStr(aX1, aY1, aX2, aY2)
   )
 end
 
+function CastlingMove(ACastling, AKey, ATradition)
+  if ATradition then
+    if AKey == "K" then return "e1g1" end
+    if AKey == "Q" then return "e1c1" end
+    if AKey == "k" then return "e8g8" end
+    if AKey == "q" then return "e8c8" end
+  else
+    local LRank = ((AKey == "K") or (AKey == "Q")) and 1 or 8
+    return MoveToStr(ACastling.X, LRank, ACastling[AKey], LRank)
+  end
+end
+
 function BoardToText(aBoard)
   local result = ''
   for y = 8, 1, -1 do
@@ -81,6 +99,19 @@ function MovePiece(aBoard, x1, y1, x2, y2, aPromotion)
   end
 end
 
+function MoveKingRook(aBoard, kx1, ky1, kx2, ky2, rx1, ry1, rx2, ry2)
+  if (aBoard[kx1][ky1] == nil) or (aBoard[rx1][ry1] == nil) then
+    return false
+  else
+    local LRook = aBoard[rx1][ry1]
+    aBoard[rx1][ry1] = nil
+    aBoard[kx2][ky2] = aBoard[kx1][ky1]
+    aBoard[kx1][ky1] = nil
+    aBoard[rx2][ry2] = LRook
+    return true 
+  end
+end
+
 function IsColor(aBoardValue, aColor)
   --assert(string.match(aColor, '[wb]'))
   return (aBoardValue ~= nil) and string.match(aBoardValue, (aColor == 'w') and '[PNBRQK]' or '[pnbrqk]')
@@ -97,6 +128,10 @@ end
 
 function IsBlackPiece(aBoardValue)
   return IsColor(aBoardValue, 'b')
+end
+
+function IsSameColor(ABoardValue1, ABoardValue2)
+  return IsWhitePiece(ABoardValue1) and IsWhitePiece(ABoardValue2) or IsBlackPiece(ABoardValue1) and IsBlackPiece(ABoardValue2)
 end
 
 function IsPawn(aBoardValue)
@@ -151,10 +186,11 @@ function EncodePosition(AFen)
     t[#t + 1] = s
   end
   assert(#t == 6)
+  local LBoard = StrToBoard(t[1])
   return {
-    piecePlacement = StrToBoard(t[1]),
+    piecePlacement = LBoard,
     activeColor = t[2],
-    castlingAvailability = t[3],
+    castlingAvailability = EncodeCastling(t[3], LBoard),
     enPassantTargetSquare = t[4],
     halfmoveClock = tonumber(t[5]),
     fullmoveNumber = tonumber(t[6])
@@ -190,7 +226,7 @@ function DecodePosition(APos)
     '%s %s %s %s %d %d',
     BoardToStr(APos.piecePlacement),
     APos.activeColor,
-    APos.castlingAvailability,
+    DecodeCastling(APos.castlingAvailability, APos.piecePlacement, false),
     APos.enPassantTargetSquare,
     APos.halfmoveClock,
     APos.fullmoveNumber
@@ -287,27 +323,29 @@ function Think(APos)
   local LMoves = GenMoves(APos.piecePlacement, OtherColor(APos.activeColor))
   local LCheck = false
   local LCastleCheck = {
-    e1g1 = false,
-    e1c1 = false,
-    e8g8 = false,
-    e8c8 = false
+    K = false,
+    Q = false,
+    k = false,
+    q = false
   }
   for k, v in ipairs(LMoves) do
     local x2, y2 = StrToSquare(string.sub(v, 3, 4))
-    LCheck = LCheck or IsKing(APos.piecePlacement[x2][y2])
-    local row = (APos.activeColor == 'w') and 1 or 8
-    if y2 == row then
-      if InRange(x2, 5, 8) then
-        if row == 1 then
-          LCastleCheck.e1g1 = true
-        else
-          LCastleCheck.e8g8 = true
+    if IsKing(APos.piecePlacement[x2][y2]) then
+      LCheck = true
+    end
+    
+    if APos.castlingAvailability.X ~= nil then
+      if (APos.activeColor == 'w') and (y2 == 1) then
+        if IsBetween(x2, APos.castlingAvailability.X, 7) then
+          LCastleCheck.K = true
+        elseif IsBetween(x2, APos.castlingAvailability.X, 3) then
+          LCastleCheck.Q = true
         end
-      else
-        if row == 1 then
-          LCastleCheck.e1c1 = true
-        else
-          LCastleCheck.e8c8 = true
+      elseif (APos.activeColor == 'b') and (y2 == 8) then
+        if IsBetween(x2, APos.castlingAvailability.X, 7) then
+          LCastleCheck.k = true
+        elseif IsBetween(x2, APos.castlingAvailability.X, 3) then
+          LCastleCheck.q = true
         end
       end
     end
@@ -338,11 +376,12 @@ function GenSpecial(APos, aColor)
   local result = {}
   local extraPositionData = Think(APos)
   
-  local function GenCastling(aSymbol, aColor, aKingX, aRookX, aMove)
-    if string.match(APos.castlingAvailability, aSymbol)
-    and IsWayClear(APos.piecePlacement, aColor, aKingX, aRookX)
-    and not extraPositionData.castlingCheck[aMove] then
-      result[#result + 1] = aMove
+  local function GenCastling(ASymbol)
+    local LColor = ((ASymbol == "K") or (ASymbol == "Q")) and "w" or "b"
+    if (APos.castlingAvailability[ASymbol] ~= nil)
+    and IsWayClear(APos.piecePlacement, LColor, APos.castlingAvailability.X, APos.castlingAvailability[ASymbol])
+    and not extraPositionData.castlingCheck[ASymbol] then
+      result[#result + 1] = CastlingMove(APos.castlingAvailability, ASymbol, false)
     end
   end
   
@@ -380,11 +419,11 @@ function GenSpecial(APos, aColor)
           end
         elseif IsKing(APos.piecePlacement[x][y]) and not extraPositionData.check then
           if IsWhitePiece(APos.piecePlacement[x][y]) then
-            GenCastling('K', aColor, 5, 8, 'e1g1')
-            GenCastling('Q', aColor, 5, 1, 'e1c1')
+            GenCastling('K')
+            GenCastling('Q')
           else
-            GenCastling('k', aColor, 5, 8, 'e8g8')
-            GenCastling('q', aColor, 5, 1, 'e8c8')
+            GenCastling('k')
+            GenCastling('q')
           end
         end
       end
@@ -394,17 +433,14 @@ function GenSpecial(APos, aColor)
 end
 
 function RemoveCastling(APos, aChar)
-  local result = string.gsub(APos.castlingAvailability, aChar, '')
-  if result == '' then
-    result = '-'
-  end
-  APos.castlingAvailability = result
+  APos.castlingAvailability[aChar] = nil
 end
 
 function DoMove(APos, x1, y1, x2, y2, aPromotion)
-  assert(APos.piecePlacement[x1][y1] ~= nil)
+  assert(APos.piecePlacement[x1][y1] ~= nil, "coup impossible " .. MoveToStr(x1, y1, x2, y2) .. " (pas de pièce sur la case de départ)")
   local result = true
-  if IsKing(APos.piecePlacement[x1][y1]) and (x1 == 5) then
+  local LSkip = false
+  if IsKing(APos.piecePlacement[x1][y1]) and (x1 == APos.castlingAvailability.X) then
     if (y1 == 1) and (APos.activeColor == 'w') then
       RemoveCastling(APos, 'K')
       RemoveCastling(APos, 'Q')
@@ -415,11 +451,11 @@ function DoMove(APos, x1, y1, x2, y2, aPromotion)
   end
   if IsRook(APos.piecePlacement[x1][y1]) then
     if (y1 == 1) and (APos.activeColor == 'w') then
-      if (x1 == 8) then RemoveCastling(APos, 'K') end
-      if (x1 == 1) then RemoveCastling(APos, 'Q') end
+      if (x1 == APos.castlingAvailability.K) then RemoveCastling(APos, 'K') end
+      if (x1 == APos.castlingAvailability.Q) then RemoveCastling(APos, 'Q') end
     elseif (y1 == 8) and (APos.activeColor == 'b') then
-      if (x1 == 8) then RemoveCastling(APos, 'k') end
-      if (x1 == 1) then RemoveCastling(APos, 'q') end
+      if (x1 == APos.castlingAvailability.k) then RemoveCastling(APos, 'k') end
+      if (x1 == APos.castlingAvailability.q) then RemoveCastling(APos, 'q') end
     end
   end
   if IsPawn(APos.piecePlacement[x1][y1]) and (math.abs(y2 - y1) == 2) then
@@ -427,15 +463,17 @@ function DoMove(APos, x1, y1, x2, y2, aPromotion)
   else
     APos.enPassantTargetSquare = '-'
   end
-  if IsKing(APos.piecePlacement[x1][y1]) and (math.abs(x2 - x1) == 2) then
-    if x2 == 7 then
-      result = result and MovePiece(APos.piecePlacement, 8, y1, 6, y2)
-    elseif x2 == 3 then
-      result = result and MovePiece(APos.piecePlacement, 1, y1, 4, y2)
+  
+  if IsKing(APos.piecePlacement[x1][y1]) and IsRook(APos.piecePlacement[x2][y2]) and IsSameColor(APos.piecePlacement[x1][y1], APos.piecePlacement[x2][y2]) then
+    if x2 > x1 then
+      result = result and MoveKingRook(APos.piecePlacement, x1, y1, 7, y1, x2, y1, 6, y1)
+      LSkip = true
     else
-      assert(false)
+      result = result and MoveKingRook(APos.piecePlacement, x1, y1, 3, y1, x2, y1, 4, y1)
+      LSkip = true
     end
   end
+  
   if IsPawn(APos.piecePlacement[x1][y1]) and (math.abs(x2 - x1) == 1) and (APos.piecePlacement[x2][y2] == nil) then
     APos.piecePlacement[x2][y1] = nil
   end
@@ -444,9 +482,11 @@ function DoMove(APos, x1, y1, x2, y2, aPromotion)
   else
     APos.halfmoveClock = APos.halfmoveClock + 1
   end
+  
   if APos.activeColor == 'b' then
     APos.fullmoveNumber = APos.fullmoveNumber + 1
   end
+  
   if IsPawn(APos.piecePlacement[x1][y1]) and ((y2 == 1) or (y2 == 8)) then
     if aPromotion == nil then
       aPromotion = (APos.activeColor == 'w') and 'Q' or 'q'
@@ -456,7 +496,10 @@ function DoMove(APos, x1, y1, x2, y2, aPromotion)
   else
     aPromotion = nil
   end
-  result = result and MovePiece(APos.piecePlacement, x1, y1, x2, y2, aPromotion)
+  
+  if not LSkip then
+    result = result and MovePiece(APos.piecePlacement, x1, y1, x2, y2, aPromotion)
+  end
   APos.activeColor = OtherColor(APos.activeColor)
   return result
 end
@@ -483,16 +526,17 @@ function GenLegal(APos)
   return result
 end
 
+--[[
 function IsCastling(APos, aMove)
   local x1, y1, x2, y2 = StrToMove(aMove)
-  if IsKing(APos.piecePlacement[x1][y1])
-  and (math.abs(x2 - x1) == 2) then
-    local rookMove = string.format('%s%d%s%d', (x2 == 7) and 'h' or 'a', y1, (x2 == 7) and 'f' or 'd', y1)
+  if IsKing(APos.piecePlacement[x1][y1]) and IsRook(APos.piecePlacement[x2][y2]) then
+    local rookMove = MoveToStr(x2, y1, (x2 > x1) and 6 or 4, y1)
     return true, rookMove
   else
     return false
   end
 end
+]]
 
 function IsEnPassant(APos, aMove)
   local x1, y1, x2, y2 = StrToMove(aMove)

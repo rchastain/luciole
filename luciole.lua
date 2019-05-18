@@ -1,10 +1,9 @@
 
 -- Luciole
 -- Joueur d'échecs artificiel
-
 -- Interface UCI pour le joueur d'échecs artificiel
 
-require('chess') -- Module pour la recherche du meilleur coup
+require('chess960')
 
 local LPos = EncodePosition()
 
@@ -25,27 +24,35 @@ function OnMove(AMove)
 end
 
 function OnGo(AWTime, ABTime, AMovesToGo)
-  local t = os.clock()
+  local LTime = os.clock()
   local LMove = BestMove(LPos)
-  local t = os.clock() - t
-  LLog.debug(string.format("Temps écoulé : %.2f s\n", t))
+  local LTime = os.clock() - LTime
+  LLog.debug(string.format("Temps écoulé : %.2f s", LTime))
   io.write(string.format("bestmove %s\n", LMove))
   io.flush()
 end
 
--- Boucle principale
+function OnSetOption(AValue)
+  LLog.debug("UCI_Chess960", AValue)
+end
+
+local LValue = ""
 
 while true do
   local LInput = io.read()
-  LLog.debug(">> ".. LInput.. "\n")
+  LLog.debug(">> " .. LInput)
   
   if LInput == "uci" then
-    io.write(string.format("id name %s\nid author %s\nuciok\n", "Luciole 0.0.1", "R. Chastain"))
+    io.write(string.format("id name %s\nid author %s\noption name UCI_Chess960 type check default false\nuciok\n", "Luciole 0.0.2", "R. Chastain"))
     io.flush()
   end
   if LInput == "isready" then
     io.write(string.format("readyok\n"))
     io.flush()
+  end
+  LValue = string.match(LInput, "setoption name UCI_Chess960 value (%w+)")
+  if LValue then
+    OnSetOption(LValue == "true")
   end
   if LInput == "ucinewgame" then
     OnNewGame()
