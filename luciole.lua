@@ -3,7 +3,7 @@
 -- Joueur d'échecs artificiel
 -- Interface UCI pour le joueur d'échecs artificiel
 
-require('chess960')
+require('chess')
 
 local LPos = EncodePosition()
 
@@ -26,45 +26,38 @@ end
 function OnGo(AWTime, ABTime, AMovesToGo)
   local LTime = os.clock()
   local LMove = BestMove(LPos)
-  local LTime = os.clock() - LTime
-  LLog.debug(string.format("Temps écoulé : %.2f s", LTime))
+  LTime = os.clock() - LTime
+  GLog.debug(string.format("Temps écoulé : %.2f s", LTime))
   io.write(string.format("bestmove %s\n", LMove))
   io.flush()
 end
 
 function OnSetOption(AValue)
-  LLog.debug("UCI_Chess960", AValue)
+  GLog.debug("UCI_Chess960", AValue)
 end
 
 local LValue = ""
 
 while true do
   local LInput = io.read()
-  LLog.debug(">> " .. LInput)
-  
-  if LInput == "uci" then
-    io.write(string.format("id name %s\nid author %s\noption name UCI_Chess960 type check default false\nuciok\n", "Luciole 0.0.2", "R. Chastain"))
-    io.flush()
-  end
-  if LInput == "isready" then
-    io.write(string.format("readyok\n"))
-    io.flush()
-  end
+  GLog.debug(">> " .. LInput)
   LValue = string.match(LInput, "setoption name UCI_Chess960 value (%w+)")
   if LValue then
     OnSetOption(LValue == "true")
-  end
-  if LInput == "ucinewgame" then
+  elseif LInput == "uci" then
+    io.write(string.format("id name %s\nid author %s\noption name UCI_Chess960 type check default false\nuciok\n", "Luciole 0.0.3", "Roland Chastain"))
+    io.flush()
+  elseif LInput == "isready" then
+    io.write(string.format("readyok\n"))
+    io.flush()
+  elseif LInput == "ucinewgame" then
     OnNewGame()
-  end
-  if LInput == "quit" then
+  elseif LInput == "quit" then
     break
-  end
-  if LInput == "show" then
+  elseif LInput == "show" then
     io.write(BoardToText(LPos.piecePlacement) .. '\n')
     io.flush()
-  end
-  if string.sub(LInput, 1, 8) == "position" then
+  elseif string.sub(LInput, 1, 8) == "position" then
     if string.sub(LInput, 10, 17) == "startpos" then
       OnStartPos()
     elseif string.sub(LInput, 10, 12) == "fen" then
@@ -78,13 +71,12 @@ while true do
         OnMove(LMove)
       end
     end
-  end
-  if string.sub(LInput, 1, 2) == "go" then
+  elseif string.sub(LInput, 1, 2) == "go" then
     local LWTime, LBTime, LMovesToGo = string.match(LInput, "go wtime (%d+) btime (%d+) movestogo (%d+)")
-    if LWTime == nil then
-      OnGo(0, 0, 0)
-    else
-      OnGo(LWTime, LBTime, LMovesToGo)
-    end
+    if LWTime == nil then OnGo(0, 0, 0) else OnGo(LWTime, LBTime, LMovesToGo) end
+  elseif string.sub(LInput, 1, 5) == "perft" then
+    LValue = string.match(LInput, "perft (%d+)")
+    io.write(string.format("perft(%d) = %d\n", LValue, CountLegalMove(LPos, tonumber(LValue))))
+    io.flush()
   end
 end

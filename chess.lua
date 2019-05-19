@@ -6,9 +6,20 @@
 require("xfen")
 
 local LSerpent = require("modules/serpent/serpent") -- Module pour la conversion des tables en chaînes de caractères
-LLog = require("modules/log/log") -- Module pour la production du journal
-LLog.outfile = "luciole.log"
-LLog.usecolor = false
+GLog = require("modules/log/log") -- Module pour la production du journal
+GLog.outfile = "luciole.log"
+GLog.usecolor = false
+
+local LSquareName = {
+  {'a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8'},
+  {'b1', 'b2', 'b3', 'b4', 'b5', 'b6', 'b7', 'b8'},
+  {'c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8'},
+  {'d1', 'd2', 'd3', 'd4', 'd5', 'd6', 'd7', 'd8'},
+  {'e1', 'e2', 'e3', 'e4', 'e5', 'e6', 'e7', 'e8'},
+  {'f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7', 'f8'},
+  {'g1', 'g2', 'g3', 'g4', 'g5', 'g6', 'g7', 'g8'},
+  {'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'h7', 'h8'}
+}
 
 function InRange(aNumber, aLow, aHigh)
   return (aNumber >= aLow) and (aNumber <= aHigh)
@@ -105,8 +116,10 @@ function MoveKingRook(aBoard, kx1, ky1, kx2, ky2, rx1, ry1, rx2, ry2)
   else
     local LRook = aBoard[rx1][ry1]
     aBoard[rx1][ry1] = nil
-    aBoard[kx2][ky2] = aBoard[kx1][ky1]
-    aBoard[kx1][ky1] = nil
+    if kx2 ~= kx1 then
+      aBoard[kx2][ky2] = aBoard[kx1][ky1]
+      aBoard[kx1][ky1] = nil
+    end
     aBoard[rx2][ry2] = LRook
     return true 
   end
@@ -185,7 +198,7 @@ function EncodePosition(AFen)
   for s in string.gmatch(AFen or 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', '%S+') do
     t[#t + 1] = s
   end
-  assert(#t == 6)
+  assert(#t == 6, AFen)
   local LBoard = StrToBoard(t[1])
   return {
     piecePlacement = LBoard,
@@ -208,15 +221,12 @@ function BoardToStr(aBoard)
       else
         local n = 0
         while (x <= 8) and (aBoard[x][y] == nil) do
-          n = n + 1
-          x = x + 1
+          n, x = n + 1, x + 1
         end
         result = result .. tostring(n)
       end
     end
-    if y > 1 then
-      result = result .. '/'
-    end
+    if y > 1 then result = result .. '/' end
   end
   return result
 end
@@ -279,7 +289,8 @@ function GenMoves(aBoard, aColor)
           for i = j, k do
             local success, x2, y2 = ComputeTargetSquare(x, y, i)
             if success and IsColor(aBoard[x2][y2], OtherColor(aColor)) then
-              result[#result + 1] = MoveToStr(x, y, x2, y2)
+              --result[#result + 1] = MoveToStr(x, y, x2, y2)
+              result[#result + 1] = LSquareName[x][y] .. LSquareName[x2][y2]
             end
           end
         elseif IsKnight(aBoard[x][y]) or IsKing(aBoard[x][y]) then
@@ -291,7 +302,8 @@ function GenMoves(aBoard, aColor)
           for i = j, k do
             local success, x2, y2 = ComputeTargetSquare(x, y, i)
             if success and not IsColor(aBoard[x2][y2], aColor) then
-              result[#result + 1] = MoveToStr(x, y, x2, y2)
+              --result[#result + 1] = MoveToStr(x, y, x2, y2)
+              result[#result + 1] = LSquareName[x][y] .. LSquareName[x2][y2]
             end
           end
         elseif IsBishop(aBoard[x][y]) or IsRook(aBoard[x][y]) or IsQueen(aBoard[x][y]) then
@@ -305,7 +317,8 @@ function GenMoves(aBoard, aColor)
           for i = j, k do
             local success, x2, y2 = ComputeTargetSquare(x, y, i)
             while success and not IsColor(aBoard[x2][y2], aColor) do
-              result[#result + 1] = MoveToStr(x, y, x2, y2)
+              --result[#result + 1] = MoveToStr(x, y, x2, y2)
+              result[#result + 1] = LSquareName[x][y] .. LSquareName[x2][y2]
               if aBoard[x2][y2] ~= nil then
                 break
               end
@@ -396,11 +409,13 @@ function GenSpecial(APos, aColor)
           end
           local success, x2, y2 = ComputeTargetSquare(x, y, j)
           if success and (APos.piecePlacement[x2][y2] == nil) then
-            result[#result + 1] = MoveToStr(x, y, x2, y2)
+            --result[#result + 1] = MoveToStr(x, y, x2, y2)
+            result[#result + 1] = LSquareName[x][y] .. LSquareName[x2][y2]
             if y == ((aColor == 'w') and 2 or 7) then
               success, x2, y2 = ComputeTargetSquare(x2, y2, j)
               if success and (APos.piecePlacement[x2][y2] == nil) then
-                result[#result + 1] = MoveToStr(x, y, x2, y2)
+                --result[#result + 1] = MoveToStr(x, y, x2, y2)
+                result[#result + 1] = LSquareName[x][y] .. LSquareName[x2][y2]
               end
             end
           end
@@ -413,8 +428,10 @@ function GenSpecial(APos, aColor)
             local success, x2, y2 = ComputeTargetSquare(x, y, i)
             if success
             and (APos.piecePlacement[x2][y2] == nil)
-            and (SquareToStr(x2, y2) == APos.enPassantTargetSquare) then
-              result[#result + 1] = MoveToStr(x, y, x2, y2)
+            --and (SquareToStr(x2, y2) == APos.enPassantTargetSquare) then
+            and (LSquareName[x2][y2] == APos.enPassantTargetSquare) then
+              --result[#result + 1] = MoveToStr(x, y, x2, y2)
+              result[#result + 1] = LSquareName[x][y] .. LSquareName[x2][y2]
             end
           end
         elseif IsKing(APos.piecePlacement[x][y]) and not extraPositionData.check then
@@ -526,24 +543,13 @@ function GenLegal(APos)
   return result
 end
 
---[[
-function IsCastling(APos, aMove)
-  local x1, y1, x2, y2 = StrToMove(aMove)
-  if IsKing(APos.piecePlacement[x1][y1]) and IsRook(APos.piecePlacement[x2][y2]) then
-    local rookMove = MoveToStr(x2, y1, (x2 > x1) and 6 or 4, y1)
-    return true, rookMove
-  else
-    return false
-  end
-end
-]]
-
 function IsEnPassant(APos, aMove)
   local x1, y1, x2, y2 = StrToMove(aMove)
   if IsPawn(APos.piecePlacement[x1][y1])
   and (x2 ~= x1)
   and (APos.piecePlacement[x2][y2] == nil) then
-    return true, SquareToStr(x2, y1)
+    --return true, SquareToStr(x2, y1)
+    return true, LSquareName[x2][y1]
   else
     return false
   end
@@ -601,6 +607,7 @@ function GenBest(APos)
   local LT1 = GenMoves(APos.piecePlacement, APos.activeColor)
   local LT2 = GenSpecial(APos, APos.activeColor)
   local LT3 = {}
+  local LCount = 0
   for k, v in ipairs(LT1) do LT3[#LT3 + 1] = v end
   for k, v in ipairs(LT2) do LT3[#LT3 + 1] = v end
   local result = {}
@@ -619,14 +626,20 @@ function GenBest(APos)
         elseif DoMove(LPos2, xx1, yy1, xx2, yy2, nil) then
           local LMax3 = math.mininteger
           LT2 = GenMoves(LPos2.piecePlacement, LPos2.activeColor)
+          LCount = 0
           for kkk, vvv in ipairs(LT2) do
             local xxx1, yyy1, xxx2, yyy2 = StrToMove(vvv)
-            LPos3 = CopyPosition(LPos2)
-            if DoMove(LPos3, xxx1, yyy1, xxx2, yyy2, nil) then
-              LPos3.activeColor = OtherColor(LPos3.activeColor)
-              local LScore2 = Material(LPos3)
-              if LScore2 > LMax3 then
-                LMax3 = LScore2
+            if LPos2.piecePlacement[xxx2][yyy2] == nil then
+              LCount = LCount + 1
+            end
+            if (LCount < 2) or (LPos2.piecePlacement[xxx2][yyy2] ~= nil) then
+              LPos3 = CopyPosition(LPos2)
+              if DoMove(LPos3, xxx1, yyy1, xxx2, yyy2, nil) then
+                LPos3.activeColor = OtherColor(LPos3.activeColor)
+                local LScore2 = Material(LPos3)
+                if LScore2 > LMax3 then
+                  LMax3 = LScore2
+                end
               end
             end
           end
@@ -642,22 +655,63 @@ function GenBest(APos)
   return result
 end
 
+function PiecePriority(ABoardValue)
+  if IsPawn(ABoardValue) then
+    return 5
+  elseif IsKnight(ABoardValue) then
+    return 4
+  elseif IsBishop(ABoardValue) then
+    return 3
+  elseif IsRook(ABoardValue) then
+    return 2
+  elseif IsQueen(ABoardValue) then
+    return 1
+  elseif IsKing(ABoardValue) then
+    return 0
+  end
+end
+
 function BestMove(APos)
   local LBest = GenBest(APos)
-  LLog.debug(LSerpent.line(LBest, {comment = false}))
+  GLog.debug(LSerpent.line(LBest, {comment = false}))
   
   local LBest2 = {}
   table.insert(LBest2, {LBest[1][1], 0})
   local i = 2
-  while (i <= #LBest) and (LBest[i][2] == LBest[i - 1][2]) do
+  while (i <= #LBest) and (LBest[i][2] == LBest[i-1][2]) do
     table.insert(LBest2, {LBest[i][1], 0})
     i = i + 1
   end
-  LLog.debug(LSerpent.line(LBest2, {comment = false}))
+  i = 1
+  while i <= #LBest2 do
+    local x1, y1, x2, y2 = StrToMove(LBest2[i][1])
+    LBest2[i][2] = IsPawn(APos.piecePlacement[x1][y1]) and 1 or 0
+    i = i + 1
+  end
+  table.sort(LBest2, function(a, b) return a[2] > b[2] end)
+  GLog.debug(LSerpent.line(LBest2, {comment = false}))
   
   local LMove = LBest2[1][1]
   if IsPromotion(APos, LMove) then
     LMove = LMove .. "q"
   end
   return LMove
+end
+
+function CountLegalMove(APos, ADepth)
+  local LPos = CopyPosition(APos)
+  local LLegal = GenLegal(LPos)
+  if ADepth < 2 then
+    return #LLegal
+  else
+    local LTotal = 0
+    for k, v in ipairs(LLegal) do
+      local x1, y1, x2, y2 = StrToMove(v)
+      local LPos1 = CopyPosition(APos)
+      if DoMove(LPos1, x1, y1, x2, y2, nil) then
+        LTotal = LTotal + CountLegalMove(LPos1, ADepth - 1)
+      end
+    end
+    return LTotal
+  end  
 end

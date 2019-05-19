@@ -84,5 +84,5 @@ function DecodeCastling(ACastling, ABoard, AAlwaysFileLetter)
     if ACastling.k then LResult = LResult .. (RookInFront(ABoard, true,  8, ACastling.k,-1) and FileLetter(ACastling.k, true)  or "k") end
     if ACastling.q then LResult = LResult .. (RookInFront(ABoard, true,  1, ACastling.q, 1) and FileLetter(ACastling.q, true)  or "q") end
   end
-  return LResult
+  return (string.len(LResult) > 0) and LResult or "-"
 end
