@@ -628,16 +628,16 @@ function GenBest(APos)
     local x1, y1, x2, y2 = StrToMove(v)
     LPos1 = CopyPosition(APos)
     if DoMove(LPos1, x1, y1, x2, y2, nil) then
-      local LMin2 = math.maxinteger
+      local LMin2 = 100000--math.maxinteger
       LT1 = GenMoves(LPos1.piecePlacement, LPos1.activeColor)
       for kk, vv in ipairs(LT1) do
         local xx1, yy1, xx2, yy2 = StrToMove(vv)
         LPos2 = CopyPosition(LPos1)
         if IsKing(LPos2.piecePlacement[xx2][yy2]) then
-          LMin2 = math.mininteger
+          LMin2 = -100000--math.mininteger
           break
         elseif DoMove(LPos2, xx1, yy1, xx2, yy2, nil) then
-          local LMax3 = math.mininteger
+          local LMax3 = -100000--math.mininteger
           LT2 = GenMoves(LPos2.piecePlacement, LPos2.activeColor)
           LCount = 0
           for kkk, vvv in ipairs(LT2) do
