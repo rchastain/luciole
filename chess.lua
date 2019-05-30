@@ -47,8 +47,8 @@ function SquareToStr(aX, aY)
 end
 
 function StrToMove(aStr)
-  --assert(InRange(#aStr, 4, 5))
-  --assert(string.match(aStr, '[a-h][1-8][a-h][1-8]' .. ((#aStr == 5) and '[nbrq]' or '')))
+  assert(InRange(#aStr, 4, 5))
+  assert(string.match(aStr, '[a-h][1-8][a-h][1-8]' .. ((#aStr == 5) and '[nbrq]' or '')), '"' .. aStr .. '"')
   local promotion = (#aStr == 5) and string.sub(aStr, 5, 5) or nil
   return
     string.byte(aStr, 1) - string.byte('a') + 1,
@@ -683,7 +683,7 @@ function BestMove(APos)
   while i <= #LBest2 do
     --local x1, y1, x2, y2 = StrToMove(LBest2[i][1])
     --LBest2[i][2] = IsPawn(APos.piecePlacement[x1][y1]) and 1 or 0
-    LBest2[i][2] = IsCastling(LBest2[i]) and 1 or 0
+    LBest2[i][2] = IsCastling(APos, LBest2[i][1]) and 1 or 0
     i = i + 1
   end
   table.sort(LBest2, function(a, b) return a[2] > b[2] end)
