@@ -33,10 +33,10 @@ function OnGo(AWTime, ABTime, AMovesToGo)
 end
 
 function OnSetOption(AValue)
-  GLog.debug("UCI_Chess960", AValue)
+  GLog.debug(AValue)
 end
 
-local LValue = ""
+local LValue, LIndex = "", 0
 
 while true do
   local LInput = io.read()
@@ -56,6 +56,7 @@ while true do
     break
   elseif LInput == "show" then
     io.write(BoardToText(LPos.piecePlacement) .. '\n')
+    io.write(DecodePosition(LPos) .. '\n')
     io.flush()
   elseif string.sub(LInput, 1, 8) == "position" then
     if string.sub(LInput, 10, 17) == "startpos" then
@@ -66,7 +67,10 @@ while true do
         OnFen(LFEN)
       end
     end
-    if string.find(LInput, "moves") then
+    LIndex = string.find(LInput, "moves")
+    if LIndex then
+      LInput =  string.sub(LInput, LIndex)
+      GLog.debug(LInput)
       for LMove in string.gmatch(LInput, "[%w][%d][%w][%d][%w]?") do
         OnMove(LMove)
       end

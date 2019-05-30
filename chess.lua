@@ -84,15 +84,15 @@ function CastlingMove(ACastling, AKey, ATradition)
 end
 
 function BoardToText(aBoard)
-  local result = ''
+  local result = '+    A B C D E F G H    +\n\n'
   for y = 8, 1, -1 do
+    result = result .. tostring(y) .. '   '
     for x = 1, 8 do
-      result = result .. ((aBoard[x][y] ~= nil) and aBoard[x][y] or '.')
+      result = result .. ' ' .. ((aBoard[x][y] ~= nil) and aBoard[x][y] or '.')
     end
-    if y > 1 then
-      result = result .. '\n'
-    end
+    result = result .. '    ' .. tostring(y) .. '\n'
   end
+  result = result .. '\n+    A B C D E F G H    +'
   return result
 end
 
@@ -373,13 +373,21 @@ end
 function IsWayClear(aBoard, aColor, aKingX, aRookX)
   local result = true
   local y = (aColor == 'w') and 1 or 8
-  result = result and (aBoard[aKingX][y] == (aColor == 'w') and 'K' or 'k')
-  result = result and (aBoard[aRookX][y] == (aColor == 'w') and 'R' or 'r')
-  local j = (aRookX == 8) and (aKingX + 1) or (aKingX - 1)
-  local k = (aRookX == 8) and (aRookX - 1) or (aRookX + 1)
-  local step = (k > j) and 1 or -1
-  for x = j, k, step do
-    result = result and (aBoard[x][y] == nil)
+  result = result and (aBoard[aKingX][y] == ((aColor == 'w') and 'K' or 'k'))
+  result = result and (aBoard[aRookX][y] == ((aColor == 'w') and 'R' or 'r'))
+  --print(1)
+  if aRookX > aKingX then
+    --print(2)
+    for x = math.min(aKingX, 6), math.max(aRookX, 7), 1 do
+      --print(3)
+      result = result and ((aBoard[x][y] == nil) or (x == aKingX) or (x == aRookX))
+    end
+  else
+    --print(4)
+    for x = math.max(aKingX, 4), math.min(aRookX, 3), -1 do
+      --print(5)
+      result = result and ((aBoard[x][y] == nil) or (x == aKingX) or (x == aRookX))
+    end
   end
   return result
 end
@@ -560,6 +568,11 @@ function IsPromotion(APos, aMove)
   return IsPawn(APos.piecePlacement[x1][y1]) and ((y2 == 1) or (y2 == 8))
 end
 
+function IsCastling(APos, aMove)
+  local x1, y1, x2, y2 = StrToMove(aMove)
+  return IsKing(APos.piecePlacement[x1][y1]) and IsRook(APos.piecePlacement[x2][y2])
+end
+
 function Material(APos)
   local result = 0
   for x = 1, 8 do
@@ -655,22 +668,6 @@ function GenBest(APos)
   return result
 end
 
-function PiecePriority(ABoardValue)
-  if IsPawn(ABoardValue) then
-    return 5
-  elseif IsKnight(ABoardValue) then
-    return 4
-  elseif IsBishop(ABoardValue) then
-    return 3
-  elseif IsRook(ABoardValue) then
-    return 2
-  elseif IsQueen(ABoardValue) then
-    return 1
-  elseif IsKing(ABoardValue) then
-    return 0
-  end
-end
-
 function BestMove(APos)
   local LBest = GenBest(APos)
   GLog.debug(LSerpent.line(LBest, {comment = false}))
@@ -684,8 +681,9 @@ function BestMove(APos)
   end
   i = 1
   while i <= #LBest2 do
-    local x1, y1, x2, y2 = StrToMove(LBest2[i][1])
-    LBest2[i][2] = IsPawn(APos.piecePlacement[x1][y1]) and 1 or 0
+    --local x1, y1, x2, y2 = StrToMove(LBest2[i][1])
+    --LBest2[i][2] = IsPawn(APos.piecePlacement[x1][y1]) and 1 or 0
+    LBest2[i][2] = IsCastling(LBest2[i]) and 1 or 0
     i = i + 1
   end
   table.sort(LBest2, function(a, b) return a[2] > b[2] end)
