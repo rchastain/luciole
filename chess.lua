@@ -37,18 +37,20 @@ function StrToSquare(aStr)
     string.byte(aStr, 2) - string.byte('1') + 1
 end
 
+--[[
 function SquareToStr(aX, aY)
-  --assert(InRange(aX, 1, 8))
-  --assert(InRange(aY, 1, 8))
+  assert(InRange(aX, 1, 8))
+  assert(InRange(aY, 1, 8))
   return string.char(
     string.byte('a') + aX - 1,
     string.byte('1') + aY - 1
   )
 end
+--]]
 
 function StrToMove(aStr)
-  assert(InRange(#aStr, 4, 5))
-  assert(string.match(aStr, '[a-h][1-8][a-h][1-8]' .. ((#aStr == 5) and '[nbrq]' or '')), '"' .. aStr .. '"')
+  --assert(InRange(#aStr, 4, 5))
+  --assert(string.match(aStr, '[a-h][1-8][a-h][1-8]' .. ((#aStr == 5) and '[nbrq]' or '')), '"' .. aStr .. '"')
   local promotion = (#aStr == 5) and string.sub(aStr, 5, 5) or nil
   return
     string.byte(aStr, 1) - string.byte('a') + 1,
@@ -58,11 +60,12 @@ function StrToMove(aStr)
     promotion
 end
 
+--[[
 function MoveToStr(aX1, aY1, aX2, aY2)
-  --assert(InRange(aX1, 1, 8))
-  --assert(InRange(aY1, 1, 8))
-  --assert(InRange(aX2, 1, 8))
-  --assert(InRange(aY2, 1, 8))
+  assert(InRange(aX1, 1, 8))
+  assert(InRange(aY1, 1, 8))
+  assert(InRange(aX2, 1, 8))
+  assert(InRange(aY2, 1, 8))
   return string.char(
     string.byte('a') + aX1 - 1,
     string.byte('1') + aY1 - 1,
@@ -70,6 +73,7 @@ function MoveToStr(aX1, aY1, aX2, aY2)
     string.byte('1') + aY2 - 1
   )
 end
+--]]
 
 function CastlingMove(ACastling, AKey, ATradition)
   if ATradition then
@@ -79,7 +83,8 @@ function CastlingMove(ACastling, AKey, ATradition)
     if AKey == "q" then return "e8c8" end
   else
     local LRank = ((AKey == "K") or (AKey == "Q")) and 1 or 8
-    return MoveToStr(ACastling.X, LRank, ACastling[AKey], LRank)
+    --return MoveToStr(ACastling.X, LRank, ACastling[AKey], LRank)
+    return LSquareName[ACastling.X][LRank] .. LSquareName[ACastling[AKey]][LRank]
   end
 end
 
@@ -125,22 +130,33 @@ function MoveKingRook(aBoard, kx1, ky1, kx2, ky2, rx1, ry1, rx2, ry2)
   end
 end
 
+--[[
 function IsColor(aBoardValue, aColor)
-  --assert(string.match(aColor, '[wb]'))
+  assert(string.match(aColor, '[wb]'))
   return (aBoardValue ~= nil) and string.match(aBoardValue, (aColor == 'w') and '[PNBRQK]' or '[pnbrqk]')
 end
+--]]
 
 function OtherColor(aColor)
   --assert(string.match(aColor, '[wb]'))
   return (aColor == 'w') and 'b' or 'w'
 end
 
+local iswhite = { P = true, N = true, B = true, R = true, Q = true, K = true }
 function IsWhitePiece(aBoardValue)
-  return IsColor(aBoardValue, 'w')
+  --return IsColor(aBoardValue, 'w')
+  return (aBoardValue ~= nil) and (iswhite[aBoardValue] == true)
 end
 
+local isblack = { p = true, n = true, b = true, r = true, q = true, k = true }
 function IsBlackPiece(aBoardValue)
-  return IsColor(aBoardValue, 'b')
+  --return IsColor(aBoardValue, 'b')
+  return (aBoardValue ~= nil) and (isblack[aBoardValue] == true)
+end
+
+function IsColor(aBoardValue, aColor)
+  --assert(string.match(aColor, '[wb]'))
+  return IsWhitePiece(aBoardValue) and (aColor == 'w') or IsBlackPiece(aBoardValue) and (aColor == 'b')
 end
 
 function IsSameColor(ABoardValue1, ABoardValue2)
@@ -462,7 +478,7 @@ function RemoveCastling(APos, aChar)
 end
 
 function DoMove(APos, x1, y1, x2, y2, aPromotion)
-  assert(APos.piecePlacement[x1][y1] ~= nil, "coup impossible " .. MoveToStr(x1, y1, x2, y2) .. " (pas de pièce sur la case de départ)")
+  assert(APos.piecePlacement[x1][y1] ~= nil, "coup impossible " .. LSquareName[x1][y1] .. LSquareName[x2][y2] .. " (pas de pièce sur la case de départ)")
   local result = true
   local LSkip = false
   if IsKing(APos.piecePlacement[x1][y1]) and (x1 == APos.castlingAvailability.X) then
@@ -484,7 +500,8 @@ function DoMove(APos, x1, y1, x2, y2, aPromotion)
     end
   end
   if IsPawn(APos.piecePlacement[x1][y1]) and (math.abs(y2 - y1) == 2) then
-    APos.enPassantTargetSquare = SquareToStr(x1, (APos.activeColor == 'w') and 3 or 6)
+    --APos.enPassantTargetSquare = SquareToStr(x1, (APos.activeColor == 'w') and 3 or 6)
+    APos.enPassantTargetSquare = LSquareName[x1][(APos.activeColor == 'w') and 3 or 6]
   else
     APos.enPassantTargetSquare = '-'
   end
