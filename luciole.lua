@@ -1,31 +1,27 @@
 
--- Luciole
--- Joueur d'échecs artificiel
--- Interface UCI pour le joueur d'échecs artificiel
+local Chess = require('chess')
 
-require('chess')
-
-local LPos = EncodePosition()
+local LPos = Chess.EncodePosition()
 
 function OnNewGame()
-  LPos = EncodePosition()
+  LPos = Chess.EncodePosition()
 end
 
 function OnStartPos()
-  LPos = EncodePosition()
+  LPos = Chess.EncodePosition()
 end
 
 function OnFen(AFen)
-  LPos = EncodePosition(AFen)
+  LPos = Chess.EncodePosition(AFen)
 end
 
 function OnMove(AMove)
-  DoMove(LPos, StrToMove(AMove))
+  Chess.DoMove(LPos, Chess.StrToMove(AMove))
 end
 
 function OnGo(AWTime, ABTime, AMovesToGo)
   local LTime = os.clock()
-  local LMove = BestMove(LPos)
+  local LMove = Chess.BestMove(LPos)
   LTime = os.clock() - LTime
   GLog.debug(string.format("Temps écoulé : %.2f s", LTime))
   io.write(string.format("bestmove %s\n", LMove))
@@ -40,6 +36,7 @@ local LValue, LIndex = "", 0
 
 while true do
   local LInput = io.read()
+  if LInput == nil then break end
   GLog.debug(">> " .. LInput)
   LValue = string.match(LInput, "setoption name UCI_Chess960 value (%w+)")
   if LValue then
@@ -55,8 +52,8 @@ while true do
   elseif LInput == "quit" then
     break
   elseif LInput == "show" then
-    io.write(BoardToText(LPos.piecePlacement) .. '\n')
-    io.write(DecodePosition(LPos) .. '\n')
+    io.write(Chess.BoardToText(LPos.piecePlacement) .. '\n')
+    io.write(Chess.DecodePosition(LPos) .. '\n')
     io.flush()
   elseif string.sub(LInput, 1, 8) == "position" then
     if string.sub(LInput, 10, 17) == "startpos" then
@@ -80,7 +77,7 @@ while true do
     if LWTime == nil then OnGo(0, 0, 0) else OnGo(LWTime, LBTime, LMovesToGo) end
   elseif string.sub(LInput, 1, 5) == "perft" then
     LValue = string.match(LInput, "perft (%d+)")
-    io.write(string.format("perft(%d) = %d\n", LValue, CountLegalMove(LPos, tonumber(LValue))))
+    io.write(string.format("perft(%d) = %d\n", LValue, Chess.CountLegalMove(LPos, tonumber(LValue))))
     io.flush()
   end
 end

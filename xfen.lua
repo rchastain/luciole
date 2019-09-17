@@ -1,9 +1,11 @@
 
+local XFEN = {}
+
 function FileLetter(AFile, AColor)
   return string.char(string.byte(AColor and 'a' or 'A') + AFile - 1)
 end
 
-function EncodeCastling(AFen3, ABoard)
+function XFEN.EncodeCastling(AFen3, ABoard)
   
   function RookFile(
     AColor,
@@ -71,7 +73,7 @@ function RookInFront(ABoard, AColor, AFrom, ATo, AStep)
   return false
 end
 
-function DecodeCastling(ACastling, ABoard, AAlwaysFileLetter)
+function XFEN.DecodeCastling(ACastling, ABoard, AAlwaysFileLetter)
   local LResult = ""
   if AAlwaysFileLetter then -- Shredder-FEN
     if ACastling.K then LResult = LResult .. FileLetter(ACastling.K, false) end
@@ -86,3 +88,5 @@ function DecodeCastling(ACastling, ABoard, AAlwaysFileLetter)
   end
   return (string.len(LResult) > 0) and LResult or "-"
 end
+
+return XFEN

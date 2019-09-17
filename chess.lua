@@ -1,12 +1,9 @@
 
--- Luciole
--- Joueur d'échecs artificiel
--- Cerveau du joueur d'échecs artificiel
+local Chess = {}
 
-require("xfen")
-
-local LSerpent = require("modules/serpent/serpent") -- Module pour la conversion des tables en chaînes de caractères
-GLog = require("modules/log/log") -- Module pour la production du journal
+local XFEN = require("xfen")
+local LSerpent = require("modules/serpent/serpent")
+GLog = require("modules/log/log")
 GLog.outfile = "luciole.log"
 GLog.usecolor = false
 
@@ -21,15 +18,15 @@ local LSquareName = {
   {'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'h7', 'h8'}
 }
 
-function InRange(aNumber, aLow, aHigh)
+function Chess.InRange(aNumber, aLow, aHigh)
   return (aNumber >= aLow) and (aNumber <= aHigh)
 end
 
-function IsBetween(aNumber, aLow, aHigh)
+function Chess.IsBetween(aNumber, aLow, aHigh)
   return (aNumber > aLow) and (aNumber < aHigh) or (aNumber > aHigh) and (aNumber < aLow)
 end
 
-function StrToSquare(aStr)
+function Chess.StrToSquare(aStr)
   --assert(#aStr == 2)
   --assert(string.match(aStr, '[a-h][1-8]'))
   return
@@ -37,18 +34,13 @@ function StrToSquare(aStr)
     string.byte(aStr, 2) - string.byte('1') + 1
 end
 
---[[
-function SquareToStr(aX, aY)
-  assert(InRange(aX, 1, 8))
-  assert(InRange(aY, 1, 8))
-  return string.char(
-    string.byte('a') + aX - 1,
-    string.byte('1') + aY - 1
-  )
+function Chess.SquareToStr(aX, aY)
+  --assert(InRange(aX, 1, 8))
+  --assert(InRange(aY, 1, 8))
+  return LSquareName[aX][aY]
 end
---]]
 
-function StrToMove(aStr)
+function Chess.StrToMove(aStr)
   --assert(InRange(#aStr, 4, 5))
   --assert(string.match(aStr, '[a-h][1-8][a-h][1-8]' .. ((#aStr == 5) and '[nbrq]' or '')), '"' .. aStr .. '"')
   local promotion = (#aStr == 5) and string.sub(aStr, 5, 5) or nil
@@ -60,22 +52,7 @@ function StrToMove(aStr)
     promotion
 end
 
---[[
-function MoveToStr(aX1, aY1, aX2, aY2)
-  assert(InRange(aX1, 1, 8))
-  assert(InRange(aY1, 1, 8))
-  assert(InRange(aX2, 1, 8))
-  assert(InRange(aY2, 1, 8))
-  return string.char(
-    string.byte('a') + aX1 - 1,
-    string.byte('1') + aY1 - 1,
-    string.byte('a') + aX2 - 1,
-    string.byte('1') + aY2 - 1
-  )
-end
---]]
-
-function CastlingMove(ACastling, AKey, ATradition)
+function Chess.CastlingMove(ACastling, AKey, ATradition)
   if ATradition then
     if AKey == "K" then return "e1g1" end
     if AKey == "Q" then return "e1c1" end
@@ -88,7 +65,7 @@ function CastlingMove(ACastling, AKey, ATradition)
   end
 end
 
-function BoardToText(aBoard)
+function Chess.BoardToText(aBoard)
   local result = '+    A B C D E F G H    +\n\n'
   for y = 8, 1, -1 do
     result = result .. tostring(y) .. '   '
@@ -101,7 +78,7 @@ function BoardToText(aBoard)
   return result
 end
 
-function MovePiece(aBoard, x1, y1, x2, y2, aPromotion)
+function Chess.MovePiece(aBoard, x1, y1, x2, y2, aPromotion)
   --assert(InRange(x1, 1, 8))
   --assert(InRange(y1, 1, 8))
   --assert(InRange(x2, 1, 8))
@@ -115,7 +92,7 @@ function MovePiece(aBoard, x1, y1, x2, y2, aPromotion)
   end
 end
 
-function MoveKingRook(aBoard, kx1, ky1, kx2, ky2, rx1, ry1, rx2, ry2)
+function Chess.MoveKingRook(aBoard, kx1, ky1, kx2, ky2, rx1, ry1, rx2, ry2)
   if (aBoard[kx1][ky1] == nil) or (aBoard[rx1][ry1] == nil) then
     return false
   else
@@ -130,64 +107,57 @@ function MoveKingRook(aBoard, kx1, ky1, kx2, ky2, rx1, ry1, rx2, ry2)
   end
 end
 
---[[
-function IsColor(aBoardValue, aColor)
-  assert(string.match(aColor, '[wb]'))
-  return (aBoardValue ~= nil) and string.match(aBoardValue, (aColor == 'w') and '[PNBRQK]' or '[pnbrqk]')
-end
---]]
-
-function OtherColor(aColor)
+function Chess.OtherColor(aColor)
   --assert(string.match(aColor, '[wb]'))
   return (aColor == 'w') and 'b' or 'w'
 end
 
 local iswhite = { P = true, N = true, B = true, R = true, Q = true, K = true }
-function IsWhitePiece(aBoardValue)
+function Chess.IsWhitePiece(aBoardValue)
   --return IsColor(aBoardValue, 'w')
   return (aBoardValue ~= nil) and (iswhite[aBoardValue] == true)
 end
 
 local isblack = { p = true, n = true, b = true, r = true, q = true, k = true }
-function IsBlackPiece(aBoardValue)
+function Chess.IsBlackPiece(aBoardValue)
   --return IsColor(aBoardValue, 'b')
   return (aBoardValue ~= nil) and (isblack[aBoardValue] == true)
 end
 
-function IsColor(aBoardValue, aColor)
+function Chess.IsColor(aBoardValue, aColor)
   --assert(string.match(aColor, '[wb]'))
-  return IsWhitePiece(aBoardValue) and (aColor == 'w') or IsBlackPiece(aBoardValue) and (aColor == 'b')
+  return Chess.IsWhitePiece(aBoardValue) and (aColor == 'w') or Chess.IsBlackPiece(aBoardValue) and (aColor == 'b')
 end
 
-function IsSameColor(ABoardValue1, ABoardValue2)
-  return IsWhitePiece(ABoardValue1) and IsWhitePiece(ABoardValue2) or IsBlackPiece(ABoardValue1) and IsBlackPiece(ABoardValue2)
+function Chess.IsSameColor(ABoardValue1, ABoardValue2)
+  return Chess.IsWhitePiece(ABoardValue1) and Chess.IsWhitePiece(ABoardValue2) or Chess.IsBlackPiece(ABoardValue1) and Chess.IsBlackPiece(ABoardValue2)
 end
 
-function IsPawn(aBoardValue)
+function Chess.IsPawn(aBoardValue)
   return (aBoardValue == 'P') or (aBoardValue == 'p')
 end
 
-function IsKnight(aBoardValue)
+function Chess.IsKnight(aBoardValue)
   return (aBoardValue == 'N') or (aBoardValue == 'n')
 end
 
-function IsBishop(aBoardValue)
+function Chess.IsBishop(aBoardValue)
   return (aBoardValue == 'B') or (aBoardValue == 'b')
 end
 
-function IsRook(aBoardValue)
+function Chess.IsRook(aBoardValue)
   return (aBoardValue == 'R') or (aBoardValue == 'r')
 end
 
-function IsQueen(aBoardValue)
+function Chess.IsQueen(aBoardValue)
   return (aBoardValue == 'Q') or (aBoardValue == 'q')
 end
 
-function IsKing(aBoardValue)
+function Chess.IsKing(aBoardValue)
   return (aBoardValue == 'K') or (aBoardValue == 'k')
 end
 
-function StrToBoard(AFen1)
+function Chess.StrToBoard(AFen1)
   local result = {{}, {}, {}, {}, {}, {}, {}, {}}
   local i, x, y = 1, 1, 8
   while i <= #AFen1 do
@@ -209,24 +179,24 @@ function StrToBoard(AFen1)
   return result
 end
 
-function EncodePosition(AFen)
+function Chess.EncodePosition(AFen)
   local t = {}
   for s in string.gmatch(AFen or 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', '%S+') do
     t[#t + 1] = s
   end
   assert(#t == 6, AFen)
-  local LBoard = StrToBoard(t[1])
+  local LBoard = Chess.StrToBoard(t[1])
   return {
     piecePlacement = LBoard,
     activeColor = t[2],
-    castlingAvailability = EncodeCastling(t[3], LBoard),
+    castlingAvailability = XFEN.EncodeCastling(t[3], LBoard),
     enPassantTargetSquare = t[4],
     halfmoveClock = tonumber(t[5]),
     fullmoveNumber = tonumber(t[6])
   }
 end
 
-function BoardToStr(aBoard)
+function Chess.BoardToStr(aBoard)
   local result = ''
   for y = 8, 1, -1 do
     local x = 1
@@ -247,12 +217,12 @@ function BoardToStr(aBoard)
   return result
 end
 
-function DecodePosition(APos)
+function Chess.DecodePosition(APos)
   return string.format(
     '%s %s %s %s %d %d',
-    BoardToStr(APos.piecePlacement),
+    Chess.BoardToStr(APos.piecePlacement),
     APos.activeColor,
-    DecodeCastling(APos.castlingAvailability, APos.piecePlacement, false),
+    XFEN.DecodeCastling(APos.castlingAvailability, APos.piecePlacement, false),
     APos.enPassantTargetSquare,
     APos.halfmoveClock,
     APos.fullmoveNumber
@@ -278,67 +248,65 @@ local LVectors = {
   {x =-1, y = 2}
 }
 
-function ComputeTargetSquare(aX1, aY1, aVectorIndex)
+function Chess.ComputeTargetSquare(aX1, aY1, aVectorIndex)
   --assert(InRange(aVectorIndex, 1, #LVectors))
   local x2, y2 =
     aX1 + LVectors[aVectorIndex].x,
     aY1 + LVectors[aVectorIndex].y
-  if InRange(x2, 1, 8) and InRange(y2, 1, 8) then
+  if Chess.InRange(x2, 1, 8) and Chess.InRange(y2, 1, 8) then
     return true, x2, y2
   else
     return false
   end
 end
 
-function GenMoves(aBoard, aColor)
+function Chess.GenMoves(aBoard, aColor)
   local j, k
   local result = {}
   for x = 1, 8 do
     for y = 1, 8 do
-      if IsColor(aBoard[x][y], aColor) then
-        if IsPawn(aBoard[x][y]) then
-          if IsWhitePiece(aBoard[x][y]) then
+      if Chess.IsColor(aBoard[x][y], aColor) then
+        if Chess.IsPawn(aBoard[x][y]) then
+          if Chess.IsWhitePiece(aBoard[x][y]) then
             j, k = 1, 2
           else
             j, k = 3, 4
           end
           for i = j, k do
-            local success, x2, y2 = ComputeTargetSquare(x, y, i)
-            if success and IsColor(aBoard[x2][y2], OtherColor(aColor)) then
+            local success, x2, y2 = Chess.ComputeTargetSquare(x, y, i)
+            if success and Chess.IsColor(aBoard[x2][y2], Chess.OtherColor(aColor)) then
               --result[#result + 1] = MoveToStr(x, y, x2, y2)
               result[#result + 1] = LSquareName[x][y] .. LSquareName[x2][y2]
             end
           end
-        elseif IsKnight(aBoard[x][y]) or IsKing(aBoard[x][y]) then
-          if IsKnight(aBoard[x][y]) then
+        elseif Chess.IsKnight(aBoard[x][y]) or Chess.IsKing(aBoard[x][y]) then
+          if Chess.IsKnight(aBoard[x][y]) then
             j, k = 9, 16
-          elseif IsKing(aBoard[x][y]) then
+          elseif Chess.IsKing(aBoard[x][y]) then
             j, k = 1, 8
           end
           for i = j, k do
-            local success, x2, y2 = ComputeTargetSquare(x, y, i)
-            if success and not IsColor(aBoard[x2][y2], aColor) then
-              --result[#result + 1] = MoveToStr(x, y, x2, y2)
+            local success, x2, y2 = Chess.ComputeTargetSquare(x, y, i)
+            if success and not Chess.IsColor(aBoard[x2][y2], aColor) then
               result[#result + 1] = LSquareName[x][y] .. LSquareName[x2][y2]
             end
           end
-        elseif IsBishop(aBoard[x][y]) or IsRook(aBoard[x][y]) or IsQueen(aBoard[x][y]) then
-          if IsBishop(aBoard[x][y]) then
+        elseif Chess.IsBishop(aBoard[x][y]) or Chess.IsRook(aBoard[x][y]) or Chess.IsQueen(aBoard[x][y]) then
+          if Chess.IsBishop(aBoard[x][y]) then
             j, k = 1, 4
-          elseif IsRook(aBoard[x][y]) then
+          elseif Chess.IsRook(aBoard[x][y]) then
             j, k = 5, 8
-          elseif IsQueen(aBoard[x][y]) then
+          elseif Chess.IsQueen(aBoard[x][y]) then
             j, k = 1, 8
           end
           for i = j, k do
-            local success, x2, y2 = ComputeTargetSquare(x, y, i)
-            while success and not IsColor(aBoard[x2][y2], aColor) do
-              --result[#result + 1] = MoveToStr(x, y, x2, y2)
+            local success, x2, y2 = Chess.ComputeTargetSquare(x, y, i)
+            while success and not Chess.IsColor(aBoard[x2][y2], aColor) do
               result[#result + 1] = LSquareName[x][y] .. LSquareName[x2][y2]
               if aBoard[x2][y2] ~= nil then
                 break
               end
-              success, x2, y2 = ComputeTargetSquare(x2, y2, i)
+              success, x2, y2 = Chess.ComputeTargetSquare(x2, y2, i)
             end
           end
         end
@@ -348,8 +316,8 @@ function GenMoves(aBoard, aColor)
   return result
 end
 
-function Think(APos)
-  local LMoves = GenMoves(APos.piecePlacement, OtherColor(APos.activeColor))
+function Chess.Think(APos)
+  local LMoves = Chess.GenMoves(APos.piecePlacement, Chess.OtherColor(APos.activeColor))
   local LCheck = false
   local LCastleCheck = {
     K = false,
@@ -358,22 +326,22 @@ function Think(APos)
     q = false
   }
   for k, v in ipairs(LMoves) do
-    local x2, y2 = StrToSquare(string.sub(v, 3, 4))
-    if IsKing(APos.piecePlacement[x2][y2]) then
+    local x2, y2 = Chess.StrToSquare(string.sub(v, 3, 4))
+    if Chess.IsKing(APos.piecePlacement[x2][y2]) then
       LCheck = true
     end
     
     if APos.castlingAvailability.X ~= nil then
       if (APos.activeColor == 'w') and (y2 == 1) then
-        if IsBetween(x2, APos.castlingAvailability.X, 7) then
+        if Chess.IsBetween(x2, APos.castlingAvailability.X, 7) then
           LCastleCheck.K = true
-        elseif IsBetween(x2, APos.castlingAvailability.X, 3) then
+        elseif Chess.IsBetween(x2, APos.castlingAvailability.X, 3) then
           LCastleCheck.Q = true
         end
       elseif (APos.activeColor == 'b') and (y2 == 8) then
-        if IsBetween(x2, APos.castlingAvailability.X, 7) then
+        if Chess.IsBetween(x2, APos.castlingAvailability.X, 7) then
           LCastleCheck.k = true
-        elseif IsBetween(x2, APos.castlingAvailability.X, 3) then
+        elseif Chess.IsBetween(x2, APos.castlingAvailability.X, 3) then
           LCastleCheck.q = true
         end
       end
@@ -391,75 +359,66 @@ function IsWayClear(aBoard, aColor, aKingX, aRookX)
   local y = (aColor == 'w') and 1 or 8
   result = result and (aBoard[aKingX][y] == ((aColor == 'w') and 'K' or 'k'))
   result = result and (aBoard[aRookX][y] == ((aColor == 'w') and 'R' or 'r'))
-  --print(1)
   if aRookX > aKingX then
-    --print(2)
     for x = math.min(aKingX, 6), math.max(aRookX, 7), 1 do
-      --print(3)
       result = result and ((aBoard[x][y] == nil) or (x == aKingX) or (x == aRookX))
     end
   else
-    --print(4)
     for x = math.max(aKingX, 4), math.min(aRookX, 3), -1 do
-      --print(5)
       result = result and ((aBoard[x][y] == nil) or (x == aKingX) or (x == aRookX))
     end
   end
   return result
 end
 
-function GenSpecial(APos, aColor)
+function Chess.GenSpecial(APos, aColor)
   local j, k
   local result = {}
-  local extraPositionData = Think(APos)
+  local extraPositionData = Chess.Think(APos)
   
   local function GenCastling(ASymbol)
     local LColor = ((ASymbol == "K") or (ASymbol == "Q")) and "w" or "b"
     if (APos.castlingAvailability[ASymbol] ~= nil)
     and IsWayClear(APos.piecePlacement, LColor, APos.castlingAvailability.X, APos.castlingAvailability[ASymbol])
     and not extraPositionData.castlingCheck[ASymbol] then
-      result[#result + 1] = CastlingMove(APos.castlingAvailability, ASymbol, false)
+      result[#result + 1] = Chess.CastlingMove(APos.castlingAvailability, ASymbol, false)
     end
   end
   
   for x = 1, 8 do
     for y = 1, 8 do
-      if IsColor(APos.piecePlacement[x][y], aColor) then
-        if IsPawn(APos.piecePlacement[x][y]) then
-          if IsWhitePiece(APos.piecePlacement[x][y]) then
+      if Chess.IsColor(APos.piecePlacement[x][y], aColor) then
+        if Chess.IsPawn(APos.piecePlacement[x][y]) then
+          if Chess.IsWhitePiece(APos.piecePlacement[x][y]) then
             j = 7
           else
             j = 8
           end
-          local success, x2, y2 = ComputeTargetSquare(x, y, j)
+          local success, x2, y2 = Chess.ComputeTargetSquare(x, y, j)
           if success and (APos.piecePlacement[x2][y2] == nil) then
-            --result[#result + 1] = MoveToStr(x, y, x2, y2)
             result[#result + 1] = LSquareName[x][y] .. LSquareName[x2][y2]
             if y == ((aColor == 'w') and 2 or 7) then
-              success, x2, y2 = ComputeTargetSquare(x2, y2, j)
+              success, x2, y2 = Chess.ComputeTargetSquare(x2, y2, j)
               if success and (APos.piecePlacement[x2][y2] == nil) then
-                --result[#result + 1] = MoveToStr(x, y, x2, y2)
                 result[#result + 1] = LSquareName[x][y] .. LSquareName[x2][y2]
               end
             end
           end
-          if IsWhitePiece(APos.piecePlacement[x][y]) then
+          if Chess.IsWhitePiece(APos.piecePlacement[x][y]) then
             j, k = 1, 2
           else
             j, k = 3, 4
           end
           for i = j, k do
-            local success, x2, y2 = ComputeTargetSquare(x, y, i)
+            local success, x2, y2 = Chess.ComputeTargetSquare(x, y, i)
             if success
             and (APos.piecePlacement[x2][y2] == nil)
-            --and (SquareToStr(x2, y2) == APos.enPassantTargetSquare) then
             and (LSquareName[x2][y2] == APos.enPassantTargetSquare) then
-              --result[#result + 1] = MoveToStr(x, y, x2, y2)
               result[#result + 1] = LSquareName[x][y] .. LSquareName[x2][y2]
             end
           end
-        elseif IsKing(APos.piecePlacement[x][y]) and not extraPositionData.check then
-          if IsWhitePiece(APos.piecePlacement[x][y]) then
+        elseif Chess.IsKing(APos.piecePlacement[x][y]) and not extraPositionData.check then
+          if Chess.IsWhitePiece(APos.piecePlacement[x][y]) then
             GenCastling('K')
             GenCastling('Q')
           else
@@ -473,53 +432,52 @@ function GenSpecial(APos, aColor)
   return result
 end
 
-function RemoveCastling(APos, aChar)
+function Chess.RemoveCastling(APos, aChar)
   APos.castlingAvailability[aChar] = nil
 end
 
-function DoMove(APos, x1, y1, x2, y2, aPromotion)
+function Chess.DoMove(APos, x1, y1, x2, y2, aPromotion)
   assert(APos.piecePlacement[x1][y1] ~= nil, "coup impossible " .. LSquareName[x1][y1] .. LSquareName[x2][y2] .. " (pas de pièce sur la case de départ)")
   local result = true
   local LSkip = false
-  if IsKing(APos.piecePlacement[x1][y1]) and (x1 == APos.castlingAvailability.X) then
+  if Chess.IsKing(APos.piecePlacement[x1][y1]) and (x1 == APos.castlingAvailability.X) then
     if (y1 == 1) and (APos.activeColor == 'w') then
-      RemoveCastling(APos, 'K')
-      RemoveCastling(APos, 'Q')
+      Chess.RemoveCastling(APos, 'K')
+      Chess.RemoveCastling(APos, 'Q')
     elseif (y1 == 8)  and (APos.activeColor == 'b') then
-      RemoveCastling(APos, 'k')
-      RemoveCastling(APos, 'q')
+      Chess.RemoveCastling(APos, 'k')
+      Chess.RemoveCastling(APos, 'q')
     end
   end
-  if IsRook(APos.piecePlacement[x1][y1]) then
+  if Chess.IsRook(APos.piecePlacement[x1][y1]) then
     if (y1 == 1) and (APos.activeColor == 'w') then
-      if (x1 == APos.castlingAvailability.K) then RemoveCastling(APos, 'K') end
-      if (x1 == APos.castlingAvailability.Q) then RemoveCastling(APos, 'Q') end
+      if (x1 == APos.castlingAvailability.K) then Chess.RemoveCastling(APos, 'K') end
+      if (x1 == APos.castlingAvailability.Q) then Chess.RemoveCastling(APos, 'Q') end
     elseif (y1 == 8) and (APos.activeColor == 'b') then
-      if (x1 == APos.castlingAvailability.k) then RemoveCastling(APos, 'k') end
-      if (x1 == APos.castlingAvailability.q) then RemoveCastling(APos, 'q') end
+      if (x1 == APos.castlingAvailability.k) then Chess.RemoveCastling(APos, 'k') end
+      if (x1 == APos.castlingAvailability.q) then Chess.RemoveCastling(APos, 'q') end
     end
   end
-  if IsPawn(APos.piecePlacement[x1][y1]) and (math.abs(y2 - y1) == 2) then
-    --APos.enPassantTargetSquare = SquareToStr(x1, (APos.activeColor == 'w') and 3 or 6)
+  if Chess.IsPawn(APos.piecePlacement[x1][y1]) and (math.abs(y2 - y1) == 2) then
     APos.enPassantTargetSquare = LSquareName[x1][(APos.activeColor == 'w') and 3 or 6]
   else
     APos.enPassantTargetSquare = '-'
   end
   
-  if IsKing(APos.piecePlacement[x1][y1]) and IsRook(APos.piecePlacement[x2][y2]) and IsSameColor(APos.piecePlacement[x1][y1], APos.piecePlacement[x2][y2]) then
+  if Chess.IsKing(APos.piecePlacement[x1][y1]) and Chess.IsRook(APos.piecePlacement[x2][y2]) and Chess.IsSameColor(APos.piecePlacement[x1][y1], APos.piecePlacement[x2][y2]) then
     if x2 > x1 then
-      result = result and MoveKingRook(APos.piecePlacement, x1, y1, 7, y1, x2, y1, 6, y1)
+      result = result and Chess.MoveKingRook(APos.piecePlacement, x1, y1, 7, y1, x2, y1, 6, y1)
       LSkip = true
     else
-      result = result and MoveKingRook(APos.piecePlacement, x1, y1, 3, y1, x2, y1, 4, y1)
+      result = result and Chess.MoveKingRook(APos.piecePlacement, x1, y1, 3, y1, x2, y1, 4, y1)
       LSkip = true
     end
   end
   
-  if IsPawn(APos.piecePlacement[x1][y1]) and (math.abs(x2 - x1) == 1) and (APos.piecePlacement[x2][y2] == nil) then
+  if Chess.IsPawn(APos.piecePlacement[x1][y1]) and (math.abs(x2 - x1) == 1) and (APos.piecePlacement[x2][y2] == nil) then
     APos.piecePlacement[x2][y1] = nil
   end
-  if IsPawn(APos.piecePlacement[x1][y1]) or (APos.piecePlacement[x2][y2] ~= nil) then
+  if Chess.IsPawn(APos.piecePlacement[x1][y1]) or (APos.piecePlacement[x2][y2] ~= nil) then
     APos.halfmoveClock = 0
   else
     APos.halfmoveClock = APos.halfmoveClock + 1
@@ -529,7 +487,7 @@ function DoMove(APos, x1, y1, x2, y2, aPromotion)
     APos.fullmoveNumber = APos.fullmoveNumber + 1
   end
   
-  if IsPawn(APos.piecePlacement[x1][y1]) and ((y2 == 1) or (y2 == 8)) then
+  if Chess.IsPawn(APos.piecePlacement[x1][y1]) and ((y2 == 1) or (y2 == 8)) then
     if aPromotion == nil then
       aPromotion = (APos.activeColor == 'w') and 'Q' or 'q'
     else
@@ -540,26 +498,26 @@ function DoMove(APos, x1, y1, x2, y2, aPromotion)
   end
   
   if not LSkip then
-    result = result and MovePiece(APos.piecePlacement, x1, y1, x2, y2, aPromotion)
+    result = result and Chess.MovePiece(APos.piecePlacement, x1, y1, x2, y2, aPromotion)
   end
-  APos.activeColor = OtherColor(APos.activeColor)
+  APos.activeColor = Chess.OtherColor(APos.activeColor)
   return result
 end
 
-function GenLegal(APos)
-  local LPosStr = DecodePosition(APos)
-  local LT1 = GenMoves(APos.piecePlacement, APos.activeColor)
-  local LT2 = GenSpecial(APos, APos.activeColor)
+function Chess.GenLegal(APos)
+  local LPosStr = Chess.DecodePosition(APos)
+  local LT1 = Chess.GenMoves(APos.piecePlacement, APos.activeColor)
+  local LT2 = Chess.GenSpecial(APos, APos.activeColor)
   local LT3 = {}
   for k, v in ipairs(LT1) do LT3[#LT3 + 1] = v end
   for k, v in ipairs(LT2) do LT3[#LT3 + 1] = v end
   local result = {}
   for k, v in ipairs(LT3) do
-    local x1, y1, x2, y2 = StrToMove(v)
-    local LPos1 = EncodePosition(LPosStr)
-    if DoMove(LPos1, x1, y1, x2, y2, nil) then
-      LPos1.activeColor = OtherColor(LPos1.activeColor)
-      local LThink = Think(LPos1)
+    local x1, y1, x2, y2 = Chess.StrToMove(v)
+    local LPos1 = Chess.EncodePosition(LPosStr)
+    if Chess.DoMove(LPos1, x1, y1, x2, y2, nil) then
+      LPos1.activeColor = Chess.OtherColor(LPos1.activeColor)
+      local LThink = Chess.Think(LPos1)
       if not LThink.check then
         result[#result + 1] = v
       end
@@ -568,26 +526,36 @@ function GenLegal(APos)
   return result
 end
 
-function IsEnPassant(APos, aMove)
-  local x1, y1, x2, y2 = StrToMove(aMove)
-  if IsPawn(APos.piecePlacement[x1][y1])
+function Chess.IsEnPassant(APos, aMove)
+  local x1, y1, x2, y2 = Chess.StrToMove(aMove)
+  if Chess.IsPawn(APos.piecePlacement[x1][y1])
   and (x2 ~= x1)
   and (APos.piecePlacement[x2][y2] == nil) then
-    --return true, SquareToStr(x2, y1)
     return true, LSquareName[x2][y1]
   else
     return false
   end
 end
 
-function IsPromotion(APos, aMove)
-  local x1, y1, x2, y2 = StrToMove(aMove)
-  return IsPawn(APos.piecePlacement[x1][y1]) and ((y2 == 1) or (y2 == 8))
+function Chess.IsPromotion(APos, aMove)
+  local x1, y1, x2, y2 = Chess.StrToMove(aMove)
+  return Chess.IsPawn(APos.piecePlacement[x1][y1]) and ((y2 == 1) or (y2 == 8))
 end
 
-function IsCastling(APos, aMove)
-  local x1, y1, x2, y2 = StrToMove(aMove)
-  return IsKing(APos.piecePlacement[x1][y1]) and IsRook(APos.piecePlacement[x2][y2])
+function Chess.IsCastling(APos, aMove)
+  local x1, y1, x2, y2 = Chess.StrToMove(aMove)
+  local result = Chess.IsKing(APos.piecePlacement[x1][y1]) and Chess.IsRook(APos.piecePlacement[x2][y2])
+  local x3, x4 = 0, 0
+  if result then
+    if x2 > x1 then
+      x3 = 7
+      x4 = 6
+    else
+      x3 = 3
+      x4 = 4
+    end
+  end
+  return result, y1, x1, x2, x3, x4
 end
 
 function Material(APos)
@@ -597,14 +565,14 @@ function Material(APos)
       local LPiece = APos.piecePlacement[x][y]
       if LPiece ~= nil then
         local d = 0      
-        if     IsPawn  (LPiece) then d =  10
-        elseif IsKnight(LPiece) then d =  30
-        elseif IsBishop(LPiece) then d =  35
-        elseif IsRook  (LPiece) then d =  80
-        elseif IsQueen (LPiece) then d = 150
-        elseif IsKing  (LPiece) then d = 500
+        if     Chess.IsPawn  (LPiece) then d =  10
+        elseif Chess.IsKnight(LPiece) then d =  30
+        elseif Chess.IsBishop(LPiece) then d =  35
+        elseif Chess.IsRook  (LPiece) then d =  80
+        elseif Chess.IsQueen (LPiece) then d = 150
+        elseif Chess.IsKing  (LPiece) then d = 500
         end
-        if IsBlackPiece(LPiece) then
+        if Chess.IsBlackPiece(LPiece) then
           d = -1 * d
         end
         result = result + d
@@ -617,7 +585,7 @@ function Material(APos)
   return result
 end
 
-function CopyPosition(APos)
+function Chess.CopyPosition(APos)
   local result = {}
   result.piecePlacement = {{}, {}, {}, {}, {}, {}, {}, {}}
   for x = 1, 8 do
@@ -634,38 +602,38 @@ function CopyPosition(APos)
 end
 
 function GenBest(APos)
-  local LT1 = GenMoves(APos.piecePlacement, APos.activeColor)
-  local LT2 = GenSpecial(APos, APos.activeColor)
+  local LT1 = Chess.GenMoves(APos.piecePlacement, APos.activeColor)
+  local LT2 = Chess.GenSpecial(APos, APos.activeColor)
   local LT3 = {}
   local LCount = 0
   for k, v in ipairs(LT1) do LT3[#LT3 + 1] = v end
   for k, v in ipairs(LT2) do LT3[#LT3 + 1] = v end
   local result = {}
   for k, v in ipairs(LT3) do
-    local x1, y1, x2, y2 = StrToMove(v)
-    LPos1 = CopyPosition(APos)
-    if DoMove(LPos1, x1, y1, x2, y2, nil) then
+    local x1, y1, x2, y2 = Chess.StrToMove(v)
+    LPos1 = Chess.CopyPosition(APos)
+    if Chess.DoMove(LPos1, x1, y1, x2, y2, nil) then
       local LMin2 = 100000--math.maxinteger
-      LT1 = GenMoves(LPos1.piecePlacement, LPos1.activeColor)
+      LT1 = Chess.GenMoves(LPos1.piecePlacement, LPos1.activeColor)
       for kk, vv in ipairs(LT1) do
-        local xx1, yy1, xx2, yy2 = StrToMove(vv)
-        LPos2 = CopyPosition(LPos1)
-        if IsKing(LPos2.piecePlacement[xx2][yy2]) then
+        local xx1, yy1, xx2, yy2 = Chess.StrToMove(vv)
+        LPos2 = Chess.CopyPosition(LPos1)
+        if Chess.IsKing(LPos2.piecePlacement[xx2][yy2]) then
           LMin2 = -100000--math.mininteger
           break
-        elseif DoMove(LPos2, xx1, yy1, xx2, yy2, nil) then
+        elseif Chess.DoMove(LPos2, xx1, yy1, xx2, yy2, nil) then
           local LMax3 = -100000--math.mininteger
-          LT2 = GenMoves(LPos2.piecePlacement, LPos2.activeColor)
+          LT2 = Chess.GenMoves(LPos2.piecePlacement, LPos2.activeColor)
           LCount = 0
           for kkk, vvv in ipairs(LT2) do
-            local xxx1, yyy1, xxx2, yyy2 = StrToMove(vvv)
+            local xxx1, yyy1, xxx2, yyy2 = Chess.StrToMove(vvv)
             if LPos2.piecePlacement[xxx2][yyy2] == nil then
               LCount = LCount + 1
             end
             if (LCount < 2) or (LPos2.piecePlacement[xxx2][yyy2] ~= nil) then
-              LPos3 = CopyPosition(LPos2)
-              if DoMove(LPos3, xxx1, yyy1, xxx2, yyy2, nil) then
-                LPos3.activeColor = OtherColor(LPos3.activeColor)
+              LPos3 = Chess.CopyPosition(LPos2)
+              if Chess.DoMove(LPos3, xxx1, yyy1, xxx2, yyy2, nil) then
+                LPos3.activeColor = Chess.OtherColor(LPos3.activeColor)
                 local LScore2 = Material(LPos3)
                 if LScore2 > LMax3 then
                   LMax3 = LScore2
@@ -685,7 +653,7 @@ function GenBest(APos)
   return result
 end
 
-function BestMove(APos)
+function Chess.BestMove(APos)
   local LBest = GenBest(APos)
   GLog.debug(LSerpent.line(LBest, {comment = false}))
   
@@ -700,33 +668,35 @@ function BestMove(APos)
   while i <= #LBest2 do
     --local x1, y1, x2, y2 = StrToMove(LBest2[i][1])
     --LBest2[i][2] = IsPawn(APos.piecePlacement[x1][y1]) and 1 or 0
-    LBest2[i][2] = IsCastling(APos, LBest2[i][1]) and 1 or 0
+    LBest2[i][2] = Chess.IsCastling(APos, LBest2[i][1]) and 1 or 0
     i = i + 1
   end
   table.sort(LBest2, function(a, b) return a[2] > b[2] end)
   GLog.debug(LSerpent.line(LBest2, {comment = false}))
   
   local LMove = LBest2[1][1]
-  if IsPromotion(APos, LMove) then
+  if Chess.IsPromotion(APos, LMove) then
     LMove = LMove .. "q"
   end
   return LMove
 end
 
-function CountLegalMove(APos, ADepth)
-  local LPos = CopyPosition(APos)
-  local LLegal = GenLegal(LPos)
+function Chess.CountLegalMove(APos, ADepth)
+  local LPos = Chess.CopyPosition(APos)
+  local LLegal = Chess.GenLegal(LPos)
   if ADepth < 2 then
     return #LLegal
   else
     local LTotal = 0
     for k, v in ipairs(LLegal) do
-      local x1, y1, x2, y2 = StrToMove(v)
-      local LPos1 = CopyPosition(APos)
-      if DoMove(LPos1, x1, y1, x2, y2, nil) then
-        LTotal = LTotal + CountLegalMove(LPos1, ADepth - 1)
+      local x1, y1, x2, y2 = Chess.StrToMove(v)
+      local LPos1 = Chess.CopyPosition(APos)
+      if Chess.DoMove(LPos1, x1, y1, x2, y2, nil) then
+        LTotal = LTotal + Chess.CountLegalMove(LPos1, ADepth - 1)
       end
     end
     return LTotal
   end  
 end
+
+return Chess
