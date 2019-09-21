@@ -3,9 +3,9 @@ local Chess = {}
 
 local XFEN = require("xfen")
 local LSerpent = require("modules/serpent/serpent")
-GLog = require("modules/log/log")
-GLog.outfile = "luciole.log"
-GLog.usecolor = false
+local LLog = require("modules/log/log")
+LLog.outfile = "chess.log"
+LLog.usecolor = false
 
 local LSquareName = {
   {'a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8'},
@@ -354,7 +354,7 @@ function Chess.Think(APos)
   return result
 end
 
-function IsWayClear(aBoard, aColor, aKingX, aRookX)
+local function IsWayClear(aBoard, aColor, aKingX, aRookX)
   local result = true
   local y = (aColor == 'w') and 1 or 8
   result = result and (aBoard[aKingX][y] == ((aColor == 'w') and 'K' or 'k'))
@@ -558,7 +558,7 @@ function Chess.IsCastling(APos, aMove)
   return result, y1, x1, x2, x3, x4
 end
 
-function Material(APos)
+local function Material(APos)
   local result = 0
   for x = 1, 8 do
     for y = 1, 8 do
@@ -601,13 +601,14 @@ function Chess.CopyPosition(APos)
   return result
 end
 
-function GenBest(APos)
+local function GenBest(APos)
   local LT1 = Chess.GenMoves(APos.piecePlacement, APos.activeColor)
   local LT2 = Chess.GenSpecial(APos, APos.activeColor)
   local LT3 = {}
-  local LCount = 0
   for k, v in ipairs(LT1) do LT3[#LT3 + 1] = v end
   for k, v in ipairs(LT2) do LT3[#LT3 + 1] = v end
+  local LPos1, LPos2, LPos3 = {}, {}, {}
+  local LCount = 0
   local result = {}
   for k, v in ipairs(LT3) do
     local x1, y1, x2, y2 = Chess.StrToMove(v)
@@ -655,7 +656,7 @@ end
 
 function Chess.BestMove(APos)
   local LBest = GenBest(APos)
-  GLog.debug(LSerpent.line(LBest, {comment = false}))
+  LLog.debug(LSerpent.line(LBest, {comment = false}))
   
   local LBest2 = {}
   table.insert(LBest2, {LBest[1][1], 0})
@@ -672,7 +673,7 @@ function Chess.BestMove(APos)
     i = i + 1
   end
   table.sort(LBest2, function(a, b) return a[2] > b[2] end)
-  GLog.debug(LSerpent.line(LBest2, {comment = false}))
+  LLog.debug(LSerpent.line(LBest2, {comment = false}))
   
   local LMove = LBest2[1][1]
   if Chess.IsPromotion(APos, LMove) then

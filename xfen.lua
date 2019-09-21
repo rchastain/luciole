@@ -1,13 +1,13 @@
 
 local XFEN = {}
 
-function FileLetter(AFile, AColor)
+local function FileLetter(AFile, AColor)
   return string.char(string.byte(AColor and 'a' or 'A') + AFile - 1)
 end
 
 function XFEN.EncodeCastling(AFen3, ABoard)
   
-  function RookFile(
+  local function RookFile(
     AColor,
     APattern,
     AFrom,
@@ -62,7 +62,7 @@ function XFEN.EncodeCastling(AFen3, ABoard)
   return {K = K, Q = Q, k = k, q = q, X = X}
 end 
 
-function RookInFront(ABoard, AColor, AFrom, ATo, AStep)
+local function RookInFront(ABoard, AColor, AFrom, ATo, AStep)
   local LRook = AColor and 'r' or 'R'
   local LRank = AColor and  8  or  1
   for x = AFrom, ATo - AStep, AStep do

@@ -1,35 +1,39 @@
 
+require('strict')
 local Chess = require('chess')
+--local LLog = require("modules/log/log")
+--LLog.outfile = "luciole.log"
+--LLog.usecolor = false
 
 local LPos = Chess.EncodePosition()
 
-function OnNewGame()
+local function OnNewGame()
   LPos = Chess.EncodePosition()
 end
 
-function OnStartPos()
+local function OnStartPos()
   LPos = Chess.EncodePosition()
 end
 
-function OnFen(AFen)
+local function OnFen(AFen)
   LPos = Chess.EncodePosition(AFen)
 end
 
-function OnMove(AMove)
+local function OnMove(AMove)
   Chess.DoMove(LPos, Chess.StrToMove(AMove))
 end
 
-function OnGo(AWTime, ABTime, AMovesToGo)
+local function OnGo(AWTime, ABTime, AMovesToGo)
   local LTime = os.clock()
   local LMove = Chess.BestMove(LPos)
   LTime = os.clock() - LTime
-  GLog.debug(string.format("Temps écoulé : %.2f s", LTime))
+  --LLog.debug(string.format("Temps écoulé : %.2f s", LTime))
   io.write(string.format("bestmove %s\n", LMove))
   io.flush()
 end
 
-function OnSetOption(AValue)
-  GLog.debug(AValue)
+local function OnSetOption(AValue)
+  --LLog.debug(AValue)
 end
 
 local LValue, LIndex = "", 0
@@ -37,7 +41,7 @@ local LValue, LIndex = "", 0
 while true do
   local LInput = io.read()
   if LInput == nil then break end
-  GLog.debug(">> " .. LInput)
+  --LLog.debug(">> " .. LInput)
   LValue = string.match(LInput, "setoption name UCI_Chess960 value (%w+)")
   if LValue then
     OnSetOption(LValue == "true")
@@ -67,7 +71,7 @@ while true do
     LIndex = string.find(LInput, "moves")
     if LIndex then
       LInput =  string.sub(LInput, LIndex)
-      GLog.debug(LInput)
+      --LLog.debug(LInput)
       for LMove in string.gmatch(LInput, "[%w][%d][%w][%d][%w]?") do
         OnMove(LMove)
       end
