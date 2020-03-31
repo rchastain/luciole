@@ -1,9 +1,9 @@
 
 require('strict')
 local Chess = require('chess')
---local LLog = require("modules/log/log")
---LLog.outfile = "luciole.log"
---LLog.usecolor = false
+local LLog = require("modules/log/log")
+LLog.outfile = "luciole.log"
+LLog.usecolor = false
 
 local LPos = Chess.EncodePosition()
 
@@ -20,7 +20,15 @@ local function OnFen(AFen)
 end
 
 local function OnMove(AMove)
-  Chess.DoMove(LPos, Chess.StrToMove(AMove))
+  local x1, y1, x2, y2, p = Chess.StrToMove(AMove)
+  if Chess.IsKing(LPos.piecePlacement[x1][y1]) then
+    if (x2 - x1 == 2) then -- e1g1, e8g8
+      x2 = 8
+    elseif (x2 - x1 == -2) then -- e1c1, e8c8
+      x2 = 1
+    end
+  end
+  Chess.DoMove(LPos, x1, y1, x2, y2, p)
 end
 
 local function OnGo(AWTime, ABTime, AMovesToGo)
@@ -41,12 +49,12 @@ local LValue, LIndex = "", 0
 while true do
   local LInput = io.read()
   if LInput == nil then break end
-  --LLog.debug(">> " .. LInput)
+  LLog.debug(">> " .. LInput)
   LValue = string.match(LInput, "setoption name UCI_Chess960 value (%w+)")
   if LValue then
     OnSetOption(LValue == "true")
   elseif LInput == "uci" then
-    io.write(string.format("id name %s\nid author %s\noption name UCI_Chess960 type check default false\nuciok\n", "Luciole 0.0.3", "Roland Chastain"))
+    io.write(string.format("id name %s\nid author %s\noption name UCI_Chess960 type check default false\nuciok\n", "Luciole 0.0.4", "Roland Chastain"))
     io.flush()
   elseif LInput == "isready" then
     io.write(string.format("readyok\n"))

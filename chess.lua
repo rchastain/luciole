@@ -691,9 +691,9 @@ function Chess.CountLegalMove(APos, ADepth)
     local LTotal = 0
     for k, v in ipairs(LLegal) do
       local x1, y1, x2, y2 = Chess.StrToMove(v)
-      local LPos1 = Chess.CopyPosition(APos)
-      if Chess.DoMove(LPos1, x1, y1, x2, y2, nil) then
-        LTotal = LTotal + Chess.CountLegalMove(LPos1, ADepth - 1)
+      local LPos2 = Chess.CopyPosition(LPos)
+      if Chess.DoMove(LPos2, x1, y1, x2, y2, nil) then
+        LTotal = LTotal + Chess.CountLegalMove(LPos2, ADepth - 1)
       end
     end
     return LTotal
