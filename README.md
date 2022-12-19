@@ -1,9 +1,10 @@
-# luciole
+# Luciole
+
 UCI chess engine written in Lua. Plays traditional chess and Fischer random chess.
 
-*Luciole* is just a Lua script. To run *Luciole* you need a Lua interpreter.
+## Warning
 
-The Lua interpreter will be called with the script name as parameter. For example, if you use Lua 5.3 under Windows, the command line will be `lua53.exe luciole.lua`.
+Project moved to https://gitlab.com/rchastain/luciole
 
 ## Commands
 
