@@ -2,10 +2,6 @@
 
 UCI chess engine written in Lua. Plays traditional chess and Fischer random chess.
 
-## Warning
-
-Project moved to https://gitlab.com/rchastain/luciole
-
 ## Commands
 
 ### UCI commands
@@ -20,3 +16,7 @@ Project moved to https://gitlab.com/rchastain/luciole
 
 * perft
 * show
+
+## Migration warning
+
+The project has moved to [Codeberg](https://codeberg.org/rchastain/luciole).
